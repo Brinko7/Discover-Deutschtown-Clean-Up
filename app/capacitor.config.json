@@ -1,0 +1,24 @@
+{
+  "appId": "org.eastallegheny.mindyourblock",
+  "appName": "Mind Your Block",
+  "webDir": "dist",
+  "backgroundColor": "#1a1a2e",
+  "android": {
+    "allowMixedContent": false
+  },
+  "ios": {
+    "contentInset": "never"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "launchAutoHide": true,
+      "backgroundColor": "#1a1a2e",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "overlaysWebView": true
+    }
+  }
+}
