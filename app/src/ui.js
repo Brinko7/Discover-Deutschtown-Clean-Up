@@ -80,7 +80,7 @@ export function toast(message, { emoji = '', duration = 2600 } = {}) {
 
 // ── Celebration (confetti + card) ────────────────────────────
 
-export function celebrate(html) {
+export function celebrate(html, { onClose } = {}) {
   const root = document.getElementById('sheet-root');
   const wrap = document.createElement('div');
   wrap.className = 'celebrate-wrap';
@@ -103,6 +103,7 @@ export function celebrate(html) {
   const close = () => {
     wrap.classList.remove('celebrate-wrap--open');
     setTimeout(() => wrap.remove(), 300);
+    if (onClose) onClose();
   };
   wrap.querySelector('[data-close]').addEventListener('click', () => {
     tapHaptic();
