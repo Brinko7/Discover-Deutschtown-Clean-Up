@@ -92,6 +92,13 @@ export function renderMap(root, params = {}) {
   });
   L.tileLayer(TILE_URL, { subdomains: 'abcd', maxZoom: 20, attribution: TILE_ATTRIBUTION }).addTo(map);
 
+  // Adjacent zones (e.g. East of 279 / Interstate and Ramps / Penn Brewery
+  // Area) can be small enough that their name labels overlap each other or
+  // run off the map edge. Track label priority by status so the most
+  // important ones win, then hide colliding labels after layout.
+  const STATUS_PRIORITY = { attention: 3, overdue: 2, clean: 1 };
+  const labelMarkers = [];
+
   ZONES.forEach((zone) => {
     const poly = ZONE_POLYGONS[zone.id];
     if (!poly || poly.length < 3) return;
@@ -108,11 +115,29 @@ export function renderMap(root, params = {}) {
       openZoneSheet(zone.id);
     });
     const center = layer.getBounds().getCenter();
-    L.marker(center, {
+    const label = L.marker(center, {
       icon: L.divIcon({ className: 'zone-label', html: `${zone.emoji} ${esc(zone.name)}`, iconSize: null }),
       interactive: false,
     }).addTo(map);
+    labelMarkers.push({ label, priority: STATUS_PRIORITY[status] || 1 });
   });
+
+  function layoutZoneLabels() {
+    const placed = [];
+    labelMarkers
+      .slice()
+      .sort((a, b) => b.priority - a.priority)
+      .forEach(({ label }) => {
+        const el = label.getElement();
+        if (!el) return;
+        el.style.visibility = 'visible';
+        const rect = el.getBoundingClientRect();
+        const overlaps = placed.some((r) => rect.left < r.right && rect.right > r.left && rect.top < r.bottom && rect.bottom > r.top);
+        if (overlaps) el.style.visibility = 'hidden';
+        else placed.push(rect);
+      });
+  }
+  map.on('zoomend moveend', layoutZoneLabels);
 
   root.querySelector('#btn-locate').addEventListener('click', async () => {
     tapHaptic();
@@ -144,7 +169,11 @@ export function renderMap(root, params = {}) {
   }
 
   // Leaflet needs a resize nudge after being injected.
-  setTimeout(() => map && map.invalidateSize(), 60);
+  setTimeout(() => {
+    if (!map) return;
+    map.invalidateSize();
+    layoutZoneLabels();
+  }, 60);
 
   return () => {
     if (map) {

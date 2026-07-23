@@ -362,22 +362,23 @@ function finish(root) {
     <div class="celebrate-sub">
       ${minutes} min in ${esc(zone.name)}${bags ? ` · ${bags % 1 ? bags.toFixed(2).replace(/0+$/, '') : bags} bag${bags === 1 ? '' : 's'}` : ''}
       ${score.multiplier > 1 ? `<br>🔥 ${score.multiplier}× bonus applied` : ''}
-    </div>`);
-
-  // Follow-up moments, staggered after the celebration.
-  setTimeout(() => {
-    if (unlockedZones.length) {
-      const mascot = ZONE_MASCOTS.find((m) => m.zoneId === unlockedZones[0]);
-      if (mascot) {
-        celebrate(`
-          <div class="celebrate-emoji">${mascot.emoji}</div>
-          <div class="celebrate-title">You met ${esc(mascot.name)}!</div>
-          <div class="celebrate-sub">"${esc(mascot.motto)}"<br>Mascot badge added to your collection.</div>`);
-        return;
+    </div>`, {
+    // Follow-up moments only appear once this card is actually dismissed,
+    // so celebration overlays never stack on top of each other.
+    onClose: () => {
+      if (unlockedZones.length) {
+        const mascot = ZONE_MASCOTS.find((m) => m.zoneId === unlockedZones[0]);
+        if (mascot) {
+          celebrate(`
+            <div class="celebrate-emoji">${mascot.emoji}</div>
+            <div class="celebrate-title">You met ${esc(mascot.name)}!</div>
+            <div class="celebrate-sub">"${esc(mascot.motto)}"<br>Mascot badge added to your collection.</div>`);
+          return;
+        }
       }
-    }
-    maybePromptAdoption(firstBlock);
-  }, 3400);
+      maybePromptAdoption(firstBlock);
+    },
+  });
 
   navigate('home');
 }
