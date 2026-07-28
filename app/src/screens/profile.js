@@ -188,6 +188,11 @@ export function renderProfile(root) {
             <span><b style="font-family:var(--font-display)">About Mind Your Block</b></span>
             <span class="row-chevron">${icons.chevronRight}</span>
           </button>
+          <button class="list-row" id="row-privacy">
+            <span class="row-icon">🔒</span>
+            <span><b style="font-family:var(--font-display)">Privacy Policy</b></span>
+            <span class="row-chevron">${icons.chevronRight}</span>
+          </button>
         </div>
       </div>
     </div>`;
@@ -219,5 +224,24 @@ export function renderProfile(root) {
         <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Clean blocks feel safer, bring neighbors together, and show off the best of the North Side. Small, steady effort — multiplied by a whole neighborhood.</p>
       </div>
       <p style="font-size:12px;color:var(--warm-gray);text-align:center;margin-top:14px">Questions or ideas? hello@mindyourblock.org</p>`);
+  });
+  root.querySelector('#row-privacy').addEventListener('click', () => {
+    tapHaptic();
+    openSheet(`
+      <h2 class="sheet-title">🔒 Privacy Policy</h2>
+      <p class="sheet-sub">Effective July 28, 2026</p>
+      <div class="card" style="margin-bottom:10px">
+        <b style="font-family:var(--font-display)">What this app collects</b>
+        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Your profile name, check-in details (zone/block, time, bags, notes), and any photos you attach to a check-in. If you allow it, we use your location just once, in the moment, to figure out which zone or block you're standing in — we never track your location in the background.</p>
+      </div>
+      <div class="card" style="margin-bottom:10px">
+        <b style="font-family:var(--font-display)">Where it's stored</b>
+        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Everything above stays on your device. This version of the app has no account system and does not send your data to us or anyone else. Camera photos never leave your phone.</p>
+      </div>
+      <div class="card">
+        <b style="font-family:var(--font-display)">Your choices</b>
+        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Check in anonymously to hide your name from the activity feed and leaderboard. Uninstalling the app (or clearing its storage) removes all of your locally stored data.</p>
+      </div>
+      <p style="font-size:12px;color:var(--warm-gray);text-align:center;margin-top:14px">The full policy, including how the Mind Your Block website handles account data, is available at hello@mindyourblock.org.</p>`);
   });
 }
