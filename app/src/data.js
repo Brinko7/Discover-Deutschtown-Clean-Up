@@ -150,13 +150,13 @@ export const BLOCKS = [
 ];
 
 export const ZONE_META = {
-  z1: { lastCleanup: '2025-05-15', daysSince: 5, nextEvent: { date: 'Jun 7', time: '9:00 AM' } },
-  z2: { lastCleanup: '2025-05-01', daysSince: 19, nextEvent: { date: 'Jun 14', time: '10:00 AM' } },
-  z3: { lastCleanup: '2025-04-10', daysSince: 40, nextEvent: { date: 'TBD', time: '' } },
-  z4: { lastCleanup: '2025-03-22', daysSince: 59, nextEvent: { date: 'TBD', time: '' } },
-  z5: { lastCleanup: '2025-05-20', daysSince: 0, nextEvent: { date: 'Jun 21', time: '9:00 AM' } },
-  z6: { lastCleanup: '2025-04-28', daysSince: 22, nextEvent: { date: 'TBD', time: '' } },
-  z7: { lastCleanup: '2025-05-10', daysSince: 10, nextEvent: { date: 'Jun 28', time: '10:00 AM' } },
+  z1: { lastCleanup: '2026-10-05', daysSince: 5, nextEvent: { date: 'Oct 17', time: '9:00 AM' } },
+  z2: { lastCleanup: '2026-09-21', daysSince: 19, nextEvent: { date: 'Oct 24', time: '10:00 AM' } },
+  z3: { lastCleanup: '2026-08-31', daysSince: 40, nextEvent: { date: 'Oct 21', time: '12:00 PM' } },
+  z4: { lastCleanup: '2026-08-12', daysSince: 59, nextEvent: { date: 'Nov 14', time: '9:00 AM' } },
+  z5: { lastCleanup: '2026-10-10', daysSince: 0, nextEvent: { date: 'Oct 31', time: '9:00 AM' } },
+  z6: { lastCleanup: '2026-09-18', daysSince: 22, nextEvent: { date: 'TBD', time: '' } },
+  z7: { lastCleanup: '2026-09-30', daysSince: 10, nextEvent: { date: 'Nov 7', time: '10:00 AM' } },
   z8: { lastCleanup: null, daysSince: 999, nextEvent: { date: 'TBD', time: '' } },
   z9: { lastCleanup: null, daysSince: 999, nextEvent: { date: 'TBD', time: '' } },
 };
@@ -176,19 +176,19 @@ export function getZoneStatus(zoneId) {
 }
 
 export const SCHEDULE = [
-  { id: 's1', month: 'JUN', day: '7', zone: 'South Allegheny Park', zoneId: 'z1', time: '9:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags & Gloves', meeting: 'Corner of Spring Way & Cedar Ave' },
-  { id: 's2', month: 'JUN', day: '14', zone: 'Allegheny Commons', zoneId: 'z1', time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags, Gloves & Grabbers', meeting: 'Commons main entrance on Arch St' },
-  { id: 's3', month: 'JUN', day: '21', zone: 'Allegheny Center Park', zoneId: 'z3', time: '9:00 AM', duration: '3 hrs', spots: 20, supplies: 'Bags, Gloves & Vests', meeting: 'East St park entry, near the fountain' },
-  { id: 's4', month: 'JUN', day: '28', zone: 'Dunloe and Knoll', zoneId: 'z7', time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags & Gloves', meeting: 'Dunloe Ave & Knoll St intersection' },
-  { id: 's5', month: 'JUL', day: '5', zone: 'Park Fountain', zoneId: 'z4', time: '9:00 AM', duration: '2 hrs', spots: 15, supplies: 'Bags, Gloves & Vests', meeting: 'Park Fountain main entrance on North Ave', recurring: 'weekly' },
-  { id: 's6', month: 'JUN', day: '24', zone: 'Clean the ACB Block', zoneId: 'z3', time: '12:00 PM', duration: '3 hrs', spots: 25, supplies: 'Bags, Gloves & Grabbers', meeting: 'Allegheny City Brewing, 507 Foreland St', sponsored: true, organizer: 'Allegheny City Brewing', sponsorUrl: 'https://alleghenycitybrewing.com', rewardType: 'both', prize: '$50 ACB gift card raffle + a free pint for the top cleaner', rafflePrize: '$50 ACB gift card', topPrize: 'A free pint' },
+  { id: 's1', month: 'OCT', day: '17', zone: 'South Allegheny Park', zoneId: 'z1', time: '9:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags & Gloves', meeting: 'Corner of Spring Way & Cedar Ave' },
+  { id: 's6', month: 'OCT', day: '21', zone: 'Clean the ACB Block', zoneId: 'z3', time: '12:00 PM', duration: '3 hrs', spots: 25, supplies: 'Bags, Gloves & Grabbers', meeting: 'Allegheny City Brewing, 507 Foreland St', sponsored: true, organizer: 'Allegheny City Brewing', sponsorUrl: 'https://alleghenycitybrewing.com', rewardType: 'both', prize: '$50 ACB gift card raffle + a free pint for the top cleaner', rafflePrize: '$50 ACB gift card', topPrize: 'A free pint' },
+  { id: 's2', month: 'OCT', day: '24', zone: 'Allegheny Commons', zoneId: 'z1', time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags, Gloves & Grabbers', meeting: 'Commons main entrance on Arch St' },
+  { id: 's3', month: 'OCT', day: '31', zone: 'Allegheny Center Park', zoneId: 'z3', time: '9:00 AM', duration: '3 hrs', spots: 20, supplies: 'Bags, Gloves & Vests', meeting: 'East St park entry, near the fountain' },
+  { id: 's4', month: 'NOV', day: '7', zone: 'Dunloe and Knoll', zoneId: 'z7', time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags & Gloves', meeting: 'Dunloe Ave & Knoll St intersection' },
+  { id: 's5', month: 'NOV', day: '14', zone: 'Park Fountain', zoneId: 'z4', time: '9:00 AM', duration: '2 hrs', spots: 15, supplies: 'Bags, Gloves & Vests', meeting: 'Park Fountain main entrance on North Ave', recurring: 'weekly' },
 ];
 
 export const PAST_EVENTS = [
-  { id: 'p1', month: 'APR', day: '26', zone: 'South Allegheny Park', time: '9:00 AM', duration: '2 hrs', volunteers: 14, bags: 22 },
-  { id: 'p2', month: 'APR', day: '12', zone: 'Allegheny Commons', time: '10:00 AM', duration: '2 hrs', volunteers: 9, bags: 15 },
-  { id: 'p3', month: 'MAR', day: '29', zone: 'Allegheny Center Park', time: '8:00 AM', duration: '3 hrs', volunteers: 21, bags: 38 },
-  { id: 'p4', month: 'MAR', day: '15', zone: 'Park Fountain', time: '11:00 AM', duration: '2 hrs', volunteers: 7, bags: 11 },
+  { id: 'p1', month: 'SEP', day: '26', zone: 'South Allegheny Park', time: '9:00 AM', duration: '2 hrs', volunteers: 14, bags: 22 },
+  { id: 'p2', month: 'SEP', day: '12', zone: 'Allegheny Commons', time: '10:00 AM', duration: '2 hrs', volunteers: 9, bags: 15 },
+  { id: 'p3', month: 'AUG', day: '29', zone: 'Allegheny Center Park', time: '8:00 AM', duration: '3 hrs', volunteers: 21, bags: 38 },
+  { id: 'p4', month: 'AUG', day: '15', zone: 'Park Fountain', time: '11:00 AM', duration: '2 hrs', volunteers: 7, bags: 11 },
 ];
 
 export const ZONE_MASCOTS = [
