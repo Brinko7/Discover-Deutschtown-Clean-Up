@@ -149,17 +149,28 @@ export const BLOCKS = [
   { id:'b_z9_7', zoneId:'z9', name:'Expressway', polygon:[[40.45489,-79.99430],[40.45458,-79.99405],[40.45576,-79.99205],[40.45609,-79.99112],[40.45638,-79.99128],[40.45577,-79.99277]] },
 ];
 
-export const ZONE_META = {
-  z1: { lastCleanup: '2026-10-05', daysSince: 5, nextEvent: { date: 'Oct 17', time: '9:00 AM' } },
-  z2: { lastCleanup: '2026-09-21', daysSince: 19, nextEvent: { date: 'Oct 24', time: '10:00 AM' } },
-  z3: { lastCleanup: '2026-08-31', daysSince: 40, nextEvent: { date: 'Oct 21', time: '12:00 PM' } },
-  z4: { lastCleanup: '2026-08-12', daysSince: 59, nextEvent: { date: 'Nov 14', time: '9:00 AM' } },
-  z5: { lastCleanup: '2026-10-10', daysSince: 0, nextEvent: { date: 'Oct 31', time: '9:00 AM' } },
-  z6: { lastCleanup: '2026-09-18', daysSince: 22, nextEvent: { date: 'TBD', time: '' } },
-  z7: { lastCleanup: '2026-09-30', daysSince: 10, nextEvent: { date: 'Nov 7', time: '10:00 AM' } },
-  z8: { lastCleanup: null, daysSince: 999, nextEvent: { date: 'TBD', time: '' } },
-  z9: { lastCleanup: null, daysSince: 999, nextEvent: { date: 'TBD', time: '' } },
+// Demo dates are generated relative to today so the data never goes stale.
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+const addDays = (n) => { const d = startOfToday(); d.setDate(d.getDate() + n); return d; };
+const isoDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+// The nth upcoming Saturday (n=1 is the first one at least two days out).
+const upcomingSaturday = (n) => {
+  const d = addDays(2);
+  d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7) + (n - 1) * 7);
+  return d;
 };
+// The nth most recent Saturday before today (n=1 is the latest one).
+const pastSaturday = (n) => {
+  const d = addDays(-1);
+  d.setDate(d.getDate() - ((d.getDay() + 1) % 7) - (n - 1) * 7);
+  return d;
+};
+const labelParts = (d) => ({ month: MONTHS[d.getMonth()].toUpperCase(), day: String(d.getDate()), date: isoDate(d) });
+
+const ZONE_DAYS_SINCE = { z1: 5, z2: 19, z3: 40, z4: 59, z5: 0, z6: 22, z7: 10, z8: null, z9: null };
+
+export const ZONE_META = {};
 
 export const STATUS_STYLE = {
   clean: { color: '#2ed573', label: 'Recently cleaned' },
@@ -175,21 +186,38 @@ export function getZoneStatus(zoneId) {
   return 'attention';
 }
 
-export const SCHEDULE = [
-  { id: 's1', month: 'OCT', day: '17', zone: 'South Allegheny Park', zoneId: 'z1', time: '9:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags & Gloves', meeting: 'Corner of Spring Way & Cedar Ave' },
-  { id: 's6', month: 'OCT', day: '21', zone: 'Clean the ACB Block', zoneId: 'z3', time: '12:00 PM', duration: '3 hrs', spots: 25, supplies: 'Bags, Gloves & Grabbers', meeting: 'Allegheny City Brewing, 507 Foreland St', sponsored: true, organizer: 'Allegheny City Brewing', sponsorUrl: 'https://alleghenycitybrewing.com', rewardType: 'both', prize: '$50 ACB gift card raffle + a free pint for the top cleaner', rafflePrize: '$50 ACB gift card', topPrize: 'A free pint' },
-  { id: 's2', month: 'OCT', day: '24', zone: 'Allegheny Commons', zoneId: 'z1', time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags, Gloves & Grabbers', meeting: 'Commons main entrance on Arch St' },
-  { id: 's3', month: 'OCT', day: '31', zone: 'Allegheny Center Park', zoneId: 'z3', time: '9:00 AM', duration: '3 hrs', spots: 20, supplies: 'Bags, Gloves & Vests', meeting: 'East St park entry, near the fountain' },
-  { id: 's4', month: 'NOV', day: '7', zone: 'Dunloe and Knoll', zoneId: 'z7', time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags & Gloves', meeting: 'Dunloe Ave & Knoll St intersection' },
-  { id: 's5', month: 'NOV', day: '14', zone: 'Park Fountain', zoneId: 'z4', time: '9:00 AM', duration: '2 hrs', spots: 15, supplies: 'Bags, Gloves & Vests', meeting: 'Park Fountain main entrance on North Ave', recurring: 'weekly' },
+const SCHEDULE_RAW = [
+  { id: 's1', when: upcomingSaturday(1), zone: 'South Allegheny Park', zoneId: 'z1', time: '9:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags & Gloves', meeting: 'Corner of Spring Way & Cedar Ave' },
+  { id: 's6', when: addDays(4), zone: 'Clean the ACB Block', zoneId: 'z3', time: '12:00 PM', duration: '3 hrs', spots: 25, supplies: 'Bags, Gloves & Grabbers', meeting: 'Allegheny City Brewing, 507 Foreland St', sponsored: true, organizer: 'Allegheny City Brewing', sponsorUrl: 'https://alleghenycitybrewing.com', rewardType: 'both', prize: '$50 ACB gift card raffle + a free pint for the top cleaner', rafflePrize: '$50 ACB gift card', topPrize: 'A free pint' },
+  { id: 's2', when: upcomingSaturday(2), zone: 'Allegheny Commons', zoneId: 'z1', time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags, Gloves & Grabbers', meeting: 'Commons main entrance on Arch St' },
+  { id: 's3', when: upcomingSaturday(3), zone: 'Allegheny Center Park', zoneId: 'z3', time: '9:00 AM', duration: '3 hrs', spots: 20, supplies: 'Bags, Gloves & Vests', meeting: 'East St park entry, near the fountain' },
+  { id: 's4', when: upcomingSaturday(4), zone: 'Dunloe and Knoll', zoneId: 'z7', time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags & Gloves', meeting: 'Dunloe Ave & Knoll St intersection' },
+  { id: 's5', when: upcomingSaturday(5), zone: 'Park Fountain', zoneId: 'z4', time: '9:00 AM', duration: '2 hrs', spots: 15, supplies: 'Bags, Gloves & Vests', meeting: 'Park Fountain main entrance on North Ave', recurring: 'weekly' },
 ];
 
-export const PAST_EVENTS = [
-  { id: 'p1', month: 'SEP', day: '26', zone: 'South Allegheny Park', time: '9:00 AM', duration: '2 hrs', volunteers: 14, bags: 22 },
-  { id: 'p2', month: 'SEP', day: '12', zone: 'Allegheny Commons', time: '10:00 AM', duration: '2 hrs', volunteers: 9, bags: 15 },
-  { id: 'p3', month: 'AUG', day: '29', zone: 'Allegheny Center Park', time: '8:00 AM', duration: '3 hrs', volunteers: 21, bags: 38 },
-  { id: 'p4', month: 'AUG', day: '15', zone: 'Park Fountain', time: '11:00 AM', duration: '2 hrs', volunteers: 7, bags: 11 },
+export const SCHEDULE = SCHEDULE_RAW
+  .map(({ when, ...ev }) => ({ ...ev, ...labelParts(when) }))
+  .sort((x, y) => x.date.localeCompare(y.date));
+
+const PAST_RAW = [
+  { id: 'p1', when: pastSaturday(2), zone: 'South Allegheny Park', time: '9:00 AM', duration: '2 hrs', volunteers: 14, bags: 22 },
+  { id: 'p2', when: pastSaturday(4), zone: 'Allegheny Commons', time: '10:00 AM', duration: '2 hrs', volunteers: 9, bags: 15 },
+  { id: 'p3', when: pastSaturday(8), zone: 'Allegheny Center Park', time: '8:00 AM', duration: '3 hrs', volunteers: 21, bags: 38 },
+  { id: 'p4', when: pastSaturday(10), zone: 'Park Fountain', time: '11:00 AM', duration: '2 hrs', volunteers: 7, bags: 11 },
 ];
+
+export const PAST_EVENTS = PAST_RAW.map(({ when, ...ev }) => ({ ...ev, ...labelParts(when) }));
+
+for (const [zoneId, ago] of Object.entries(ZONE_DAYS_SINCE)) {
+  const next = SCHEDULE.find((ev) => ev.zoneId === zoneId);
+  ZONE_META[zoneId] = {
+    lastCleanup: ago === null ? null : isoDate(addDays(-ago)),
+    daysSince: ago === null ? 999 : ago,
+    nextEvent: next
+      ? { date: `${next.month[0]}${next.month.slice(1).toLowerCase()} ${next.day}`, time: next.time }
+      : { date: 'TBD', time: '' },
+  };
+}
 
 export const ZONE_MASCOTS = [
   { zoneId: 'z1', emoji: '🦉', name: 'Olive the Owl', motto: 'Watch over the park.' },
