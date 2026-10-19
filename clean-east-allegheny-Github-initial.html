@@ -4173,9 +4173,19 @@ function closeAbout() {
     // ============================================================
     // SCHEDULE SUB-TABS + PAST EVENTS
     // ============================================================
-    const PAST_EVENTS = [
+    // Demo dates are generated relative to today so the data never goes stale.
+    const _DEMO_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const _addDays = (n) => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() + n); return d; };
+    const _isoDate = (d) => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    // nth upcoming Saturday (n=1 is the first one at least two days out)
+    const _upcomingSaturday = (n) => { const d = _addDays(2); d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7) + (n-1)*7); return d; };
+    // nth most recent Saturday before today
+    const _pastSaturday = (n) => { const d = _addDays(-1); d.setDate(d.getDate() - ((d.getDay() + 1) % 7) - (n-1)*7); return d; };
+    const _labelParts = (d) => ({ month: _DEMO_MONTHS[d.getMonth()].toUpperCase(), day: String(d.getDate()), date: _isoDate(d) });
+
+    const _PAST_RAW = [
       {
-        id: 'p1', month: 'APR', day: '26', zone: 'South Allegheny Park', time: '9:00 AM',
+        id: 'p1', when: _pastSaturday(2), zone: 'South Allegheny Park', time: '9:00 AM',
         duration: '2 hrs', volunteers: 14, bags: 22,
         photos: [
           { emoji: '🌿', label: 'Before cleanup' },
@@ -4187,7 +4197,7 @@ function closeAbout() {
         ]
       },
       {
-        id: 'p2', month: 'APR', day: '12', zone: 'Allegheny Commons', time: '10:00 AM',
+        id: 'p2', when: _pastSaturday(4), zone: 'Allegheny Commons', time: '10:00 AM',
         duration: '2 hrs', volunteers: 9, bags: 15,
         photos: [
           { emoji: '🏙️', label: 'Federal St' },
@@ -4196,7 +4206,7 @@ function closeAbout() {
         ]
       },
       {
-        id: 'p3', month: 'MAR', day: '29', zone: 'Allegheny Center Park', time: '8:00 AM',
+        id: 'p3', when: _pastSaturday(8), zone: 'Allegheny Center Park', time: '8:00 AM',
         duration: '3 hrs', volunteers: 21, bags: 38,
         photos: [
           { emoji: '🌊', label: 'Riverfront' },
@@ -4206,11 +4216,12 @@ function closeAbout() {
         ]
       },
       {
-        id: 'p4', month: 'MAR', day: '15', zone: 'Park Fountain', time: '11:00 AM',
+        id: 'p4', when: _pastSaturday(10), zone: 'Park Fountain', time: '11:00 AM',
         duration: '2 hrs', volunteers: 7, bags: 11,
         photos: []
       },
     ];
+    const PAST_EVENTS = _PAST_RAW.map(({ when, ...ev }) => ({ ...ev, ..._labelParts(when) }));
 
     // Photo lightbox for past events
     let currentEventPhotos = [];
@@ -5361,25 +5372,30 @@ function closeAbout() {
     let activeDrawingZone = null;
 
     // ── SCHEDULE DATA ────────────────────────────────────────────
-    const SCHEDULE = [
-      { id: 's1', month: 'JUN', day: '7',  zone: 'South Allegheny Park',  time: '9:00 AM',  duration: '2 hrs', spots: 20, supplies: 'Bags &amp; Gloves', meeting: 'Corner of Spring Way &amp; Cedar Ave' },
-      { id: 's2', month: 'JUN', day: '14', zone: 'Allegheny Commons',     time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags, Gloves &amp; Grabbers', meeting: 'Commons main entrance on Arch St' },
-      { id: 's3', month: 'JUN', day: '21', zone: 'Allegheny Center Park', time: '9:00 AM',  duration: '3 hrs', spots: 20, supplies: 'Bags, Gloves &amp; Vests', meeting: 'East St park entry, near the fountain' },
-      { id: 's4', month: 'JUN', day: '28', zone: 'Dunloe and Knoll',      time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags &amp; Gloves', meeting: 'Dunloe Ave &amp; Knoll St intersection' },
-      { id: 's5', month: 'JUL', day: '5',  zone: 'Park Fountain',         time: '9:00 AM',  duration: '2 hrs', spots: 15, supplies: 'Bags, Gloves &amp; Vests', meeting: 'Park Fountain main entrance on North Ave', recurring: 'weekly' },
-      { id: 's6', month: 'JUN', day: '24', zone: 'Clean the ACB Block', zoneId: 'z3', time: '12:00 PM', duration: '3 hrs', spots: 25, supplies: 'Bags, Gloves &amp; Grabbers', meeting: 'Allegheny City Brewing, 507 Foreland St', sponsored: true, organizer: 'Allegheny City Brewing', sponsorUrl: 'https://alleghenycitybrewing.com', rewardType: 'both', prize: '$50 ACB gift card raffle + a free pint for the top cleaner', rafflePrize: '$50 ACB gift card', topPrize: 'A free pint' },
+    const _SCHEDULE_RAW = [
+      { id: 's1', when: _upcomingSaturday(1),  zone: 'South Allegheny Park',  time: '9:00 AM',  duration: '2 hrs', spots: 20, supplies: 'Bags &amp; Gloves', meeting: 'Corner of Spring Way &amp; Cedar Ave' },
+      { id: 's2', when: _upcomingSaturday(2), zone: 'Allegheny Commons',     time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags, Gloves &amp; Grabbers', meeting: 'Commons main entrance on Arch St' },
+      { id: 's3', when: _upcomingSaturday(3), zone: 'Allegheny Center Park', time: '9:00 AM',  duration: '3 hrs', spots: 20, supplies: 'Bags, Gloves &amp; Vests', meeting: 'East St park entry, near the fountain' },
+      { id: 's4', when: _upcomingSaturday(4), zone: 'Dunloe and Knoll',      time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags &amp; Gloves', meeting: 'Dunloe Ave &amp; Knoll St intersection' },
+      { id: 's5', when: _upcomingSaturday(5),  zone: 'Park Fountain',         time: '9:00 AM',  duration: '2 hrs', spots: 15, supplies: 'Bags, Gloves &amp; Vests', meeting: 'Park Fountain main entrance on North Ave', recurring: 'weekly' },
+      { id: 's6', when: _addDays(4), zone: 'Clean the ACB Block', zoneId: 'z3', time: '12:00 PM', duration: '3 hrs', spots: 25, supplies: 'Bags, Gloves &amp; Grabbers', meeting: 'Allegheny City Brewing, 507 Foreland St', sponsored: true, organizer: 'Allegheny City Brewing', sponsorUrl: 'https://alleghenycitybrewing.com', rewardType: 'both', prize: '$50 ACB gift card raffle + a free pint for the top cleaner', rafflePrize: '$50 ACB gift card', topPrize: 'A free pint' },
     ];
+    const SCHEDULE = _SCHEDULE_RAW
+      .map(({ when, ...ev }) => ({ ...ev, ..._labelParts(when) }))
+      .sort((x, y) => x.date.localeCompare(y.date));
 
+    const _zoneNext = (id) => { const e = SCHEDULE.find(x => x.id === id); return e ? { date: e.month[0] + e.month.slice(1).toLowerCase() + ' ' + e.day, time: e.time } : { date: 'TBD', time: '' }; };
+    const _zoneSince = (n) => n === null ? null : _isoDate(_addDays(-n));
     const ZONE_META = {
-      z1:  { lastCleanup: '2025-05-15', daysSince: 5,   activeUsers: [], nextEvent: { date: 'Jun 7',  time: '9:00 AM'  } },
-      z2:  { lastCleanup: '2025-05-01', daysSince: 19,  activeUsers: [], nextEvent: { date: 'Jun 14', time: '10:00 AM' } },
-      z3:  { lastCleanup: '2025-04-10', daysSince: 40,  activeUsers: [], nextEvent: { date: 'TBD',    time: ''         } },
-      z4:  { lastCleanup: '2025-03-22', daysSince: 59,  activeUsers: [], nextEvent: { date: 'TBD',    time: ''         } },
-      z5:  { lastCleanup: '2025-05-20', daysSince: 0,   activeUsers: ['u1'], nextEvent: { date: 'Jun 21', time: '9:00 AM' } },
-      z6:  { lastCleanup: '2025-04-28', daysSince: 22,  activeUsers: [], nextEvent: { date: 'TBD',    time: ''         } },
-      z7:  { lastCleanup: '2025-05-10', daysSince: 10,  activeUsers: [], nextEvent: { date: 'Jun 28', time: '10:00 AM' } },
-      z8:  { lastCleanup: null,         daysSince: 999, activeUsers: [], nextEvent: { date: 'TBD',    time: ''         } },
-      z9:  { lastCleanup: null,         daysSince: 999, activeUsers: [], nextEvent: { date: 'TBD',    time: ''         } }
+      z1:  { lastCleanup: _zoneSince(5),  daysSince: 5,   activeUsers: [], nextEvent: _zoneNext('s1') },
+      z2:  { lastCleanup: _zoneSince(19), daysSince: 19,  activeUsers: [], nextEvent: _zoneNext('s2') },
+      z3:  { lastCleanup: _zoneSince(40), daysSince: 40,  activeUsers: [], nextEvent: { date: 'TBD', time: '' } },
+      z4:  { lastCleanup: _zoneSince(59), daysSince: 59,  activeUsers: [], nextEvent: { date: 'TBD', time: '' } },
+      z5:  { lastCleanup: _zoneSince(0),  daysSince: 0,   activeUsers: ['u1'], nextEvent: _zoneNext('s3') },
+      z6:  { lastCleanup: _zoneSince(22), daysSince: 22,  activeUsers: [], nextEvent: { date: 'TBD', time: '' } },
+      z7:  { lastCleanup: _zoneSince(10), daysSince: 10,  activeUsers: [], nextEvent: _zoneNext('s4') },
+      z8:  { lastCleanup: null,           daysSince: 999, activeUsers: [], nextEvent: { date: 'TBD', time: '' } },
+      z9:  { lastCleanup: null,           daysSince: 999, activeUsers: [], nextEvent: { date: 'TBD', time: '' } }
     };
 
 
@@ -6706,7 +6722,8 @@ function saveZonePolygon() {
       const mi = _MONTH_IDX[ev.month]; if (mi == null) return null;
       const m = ev.time.match(/(\d+):(\d+)\s*(AM|PM)/i); if (!m) return null;
       let hr = parseInt(m[1],10) % 12; if (/PM/i.test(m[3])) hr += 12;
-      const start = new Date(new Date().getFullYear(), mi, parseInt(ev.day,10), hr, parseInt(m[2],10), 0);
+      const start = ev.date ? new Date(+ev.date.slice(0,4), +ev.date.slice(5,7)-1, +ev.date.slice(8,10), hr, parseInt(m[2],10), 0)
+        : new Date(new Date().getFullYear(), mi, parseInt(ev.day,10), hr, parseInt(m[2],10), 0);
       let hours = 2; const dl = (ev.duration||'').toLowerCase();
       if (dl.indexOf('half') >= 0) hours = 4;
       else if (dl.indexOf('full') >= 0) hours = 8;
