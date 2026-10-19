@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-06-03 19:42:46 -->
+<!-- VERSION: 2026-10-19 17:56:49 -->
 <!-- 
   SUPABASE SCHEMA ADDITIONS FOR BLOCKS:
   
@@ -3425,6 +3425,9 @@ function closeAbout() {
 
           <!-- Area typeahead -->
           <div class="form-group">
+            <button type="button" id="ci-autolocate-btn" onclick="ciAutoLocate()" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:#d6eadf;border:none;border-left:4px solid var(--green-light);border-radius:8px;padding:10px 14px;margin-bottom:12px;cursor:pointer;color:#1a4d2e;font-size:14px;font-family:inherit">
+              <span style="font-size:20px">🧭</span><span id="ci-autolocate-text"><b>Find my zone automatically</b><br><span style="font-size:12px;opacity:.8">Uses your location to pick the zone and block you are standing in</span></span>
+            </button>
             <label class="form-label">Where are you cleaning? <span style="color:var(--amber)">*</span></label>
             <input id="ci-area-input" class="form-input" placeholder="Search zones or blocks..." autocomplete="off"
               oninput="ciFilterAreas(this.value)" onfocus="ciShowDropdown()" style="margin-bottom:4px">
@@ -5373,29 +5376,29 @@ function closeAbout() {
 
     // ── SCHEDULE DATA ────────────────────────────────────────────
     const _SCHEDULE_RAW = [
-      { id: 's1', when: _upcomingSaturday(1),  zone: 'South Allegheny Park',  time: '9:00 AM',  duration: '2 hrs', spots: 20, supplies: 'Bags &amp; Gloves', meeting: 'Corner of Spring Way &amp; Cedar Ave' },
-      { id: 's2', when: _upcomingSaturday(2), zone: 'Allegheny Commons',     time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags, Gloves &amp; Grabbers', meeting: 'Commons main entrance on Arch St' },
-      { id: 's3', when: _upcomingSaturday(3), zone: 'Allegheny Center Park', time: '9:00 AM',  duration: '3 hrs', spots: 20, supplies: 'Bags, Gloves &amp; Vests', meeting: 'East St park entry, near the fountain' },
-      { id: 's4', when: _upcomingSaturday(4), zone: 'Dunloe and Knoll',      time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags &amp; Gloves', meeting: 'Dunloe Ave &amp; Knoll St intersection' },
-      { id: 's5', when: _upcomingSaturday(5),  zone: 'Park Fountain',         time: '9:00 AM',  duration: '2 hrs', spots: 15, supplies: 'Bags, Gloves &amp; Vests', meeting: 'Park Fountain main entrance on North Ave', recurring: 'weekly' },
+      { id: 's1', when: _upcomingSaturday(1), zoneId: 'z1',  zone: 'South Allegheny Park',  time: '9:00 AM',  duration: '2 hrs', spots: 20, supplies: 'Bags &amp; Gloves', meeting: 'Corner of Spring Way &amp; Cedar Ave' },
+      { id: 's2', when: _upcomingSaturday(2), zoneId: 'z1', zone: 'Allegheny Commons',     time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags, Gloves &amp; Grabbers', meeting: 'Commons main entrance on Arch St' },
+      { id: 's3', when: _upcomingSaturday(3), zoneId: 'z3', zone: 'Allegheny Center Park', time: '9:00 AM',  duration: '3 hrs', spots: 20, supplies: 'Bags, Gloves &amp; Vests', meeting: 'East St park entry, near the fountain' },
+      { id: 's4', when: _upcomingSaturday(4), zoneId: 'z7', zone: 'Dunloe and Knoll',      time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags &amp; Gloves', meeting: 'Dunloe Ave &amp; Knoll St intersection' },
+      { id: 's5', when: _upcomingSaturday(5), zoneId: 'z4',  zone: 'Park Fountain',         time: '9:00 AM',  duration: '2 hrs', spots: 15, supplies: 'Bags, Gloves &amp; Vests', meeting: 'Park Fountain main entrance on North Ave', recurring: 'weekly' },
       { id: 's6', when: _addDays(4), zone: 'Clean the ACB Block', zoneId: 'z3', time: '12:00 PM', duration: '3 hrs', spots: 25, supplies: 'Bags, Gloves &amp; Grabbers', meeting: 'Allegheny City Brewing, 507 Foreland St', sponsored: true, organizer: 'Allegheny City Brewing', sponsorUrl: 'https://alleghenycitybrewing.com', rewardType: 'both', prize: '$50 ACB gift card raffle + a free pint for the top cleaner', rafflePrize: '$50 ACB gift card', topPrize: 'A free pint' },
     ];
     const SCHEDULE = _SCHEDULE_RAW
       .map(({ when, ...ev }) => ({ ...ev, ..._labelParts(when) }))
       .sort((x, y) => x.date.localeCompare(y.date));
 
-    const _zoneNext = (id) => { const e = SCHEDULE.find(x => x.id === id); return e ? { date: e.month[0] + e.month.slice(1).toLowerCase() + ' ' + e.day, time: e.time } : { date: 'TBD', time: '' }; };
+    const _zoneNext = (id) => { const e = SCHEDULE.find(x => x.zoneId === id); return e ? { date: e.month[0] + e.month.slice(1).toLowerCase() + ' ' + e.day, time: e.time } : { date: 'TBD', time: '' }; };
     const _zoneSince = (n) => n === null ? null : _isoDate(_addDays(-n));
     const ZONE_META = {
-      z1:  { lastCleanup: _zoneSince(5),  daysSince: 5,   activeUsers: [], nextEvent: _zoneNext('s1') },
-      z2:  { lastCleanup: _zoneSince(19), daysSince: 19,  activeUsers: [], nextEvent: _zoneNext('s2') },
-      z3:  { lastCleanup: _zoneSince(40), daysSince: 40,  activeUsers: [], nextEvent: { date: 'TBD', time: '' } },
-      z4:  { lastCleanup: _zoneSince(59), daysSince: 59,  activeUsers: [], nextEvent: { date: 'TBD', time: '' } },
-      z5:  { lastCleanup: _zoneSince(0),  daysSince: 0,   activeUsers: ['u1'], nextEvent: _zoneNext('s3') },
-      z6:  { lastCleanup: _zoneSince(22), daysSince: 22,  activeUsers: [], nextEvent: { date: 'TBD', time: '' } },
-      z7:  { lastCleanup: _zoneSince(10), daysSince: 10,  activeUsers: [], nextEvent: _zoneNext('s4') },
-      z8:  { lastCleanup: null,           daysSince: 999, activeUsers: [], nextEvent: { date: 'TBD', time: '' } },
-      z9:  { lastCleanup: null,           daysSince: 999, activeUsers: [], nextEvent: { date: 'TBD', time: '' } }
+      z1:  { lastCleanup: _zoneSince(5),  daysSince: 5,   activeUsers: [], nextEvent: _zoneNext('z1') },
+      z2:  { lastCleanup: _zoneSince(19), daysSince: 19,  activeUsers: [], nextEvent: _zoneNext('z2') },
+      z3:  { lastCleanup: _zoneSince(40), daysSince: 40,  activeUsers: [], nextEvent: _zoneNext('z3') },
+      z4:  { lastCleanup: _zoneSince(59), daysSince: 59,  activeUsers: [], nextEvent: _zoneNext('z4') },
+      z5:  { lastCleanup: _zoneSince(0),  daysSince: 0,   activeUsers: ['u1'], nextEvent: _zoneNext('z5') },
+      z6:  { lastCleanup: _zoneSince(22), daysSince: 22,  activeUsers: [], nextEvent: _zoneNext('z6') },
+      z7:  { lastCleanup: _zoneSince(10), daysSince: 10,  activeUsers: [], nextEvent: _zoneNext('z7') },
+      z8:  { lastCleanup: null,           daysSince: 999, activeUsers: [], nextEvent: _zoneNext('z8') },
+      z9:  { lastCleanup: null,           daysSince: 999, activeUsers: [], nextEvent: _zoneNext('z9') }
     };
 
 
@@ -5434,6 +5437,21 @@ function closeAbout() {
     // MAP INIT
     // ============================================================
 
+    var _userLocMarker = null;
+    async function mapFindMe() {
+      try {
+        var p = await _getUserPosition();
+        if (_userLocMarker) _userLocMarker.remove();
+        _userLocMarker = L.circleMarker([p.lat, p.lng], { radius: 8, color: '#fff', weight: 2.5, fillColor: '#2d6a4f', fillOpacity: 1 }).addTo(leafletMap);
+        leafletMap.flyTo([p.lat, p.lng], 16, { duration: 0.8 });
+        var found = locateArea(p.lat, p.lng);
+        if (found.zone) setTimeout(function() { showZoneDetail(found.zone.id); }, 900);
+        else showToast("🧭 You're outside the cleanup zones");
+      } catch (e) {
+        showToast('📍 Could not get your location — check browser permissions');
+      }
+    }
+
     function initMap() {
       if (leafletMap) return;
       if (typeof L === "undefined") { console.warn("Leaflet not loaded yet"); return; }
@@ -5452,6 +5470,21 @@ function closeAbout() {
         maxZoom: 20,
         crossOrigin: true
       }).addTo(leafletMap);
+
+      // "Find me" button (ported from the mobile app)
+      var FindMe = L.Control.extend({
+        options: { position: 'topleft' },
+        onAdd: function() {
+          var b = L.DomUtil.create('a', 'leaflet-bar');
+          b.href = '#'; b.title = 'Find me'; b.setAttribute('role', 'button'); b.setAttribute('aria-label', 'Find me');
+          b.style.cssText = 'display:block;width:30px;height:30px;line-height:30px;text-align:center;font-size:17px;background:#fff;color:#2d6a4f;text-decoration:none;border-radius:4px;cursor:pointer';
+          b.innerHTML = '🧭';
+          L.DomEvent.disableClickPropagation(b);
+          L.DomEvent.on(b, 'click', function(e) { L.DomEvent.preventDefault(e); mapFindMe(); });
+          return b;
+        }
+      });
+      leafletMap.addControl(new FindMe());
 
       tooltipEl = document.createElement('div');
       tooltipEl.style.cssText = 'position:fixed;z-index:9000;pointer-events:none;display:none;max-width:250px;';
@@ -6864,6 +6897,82 @@ function saveZonePolygon() {
       _ciEventContext = ctx;               // …so re-apply the verified context
     }
 
+    // ── GEOLOCATION (ported from the mobile app) ────────────────────
+    function _getUserPosition() {
+      return new Promise(function(resolve, reject) {
+        if (!navigator.geolocation) { reject(new Error('unsupported')); return; }
+        navigator.geolocation.getCurrentPosition(
+          function(pos) { resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }); },
+          reject,
+          { enableHighAccuracy: true, timeout: 12000 }
+        );
+      });
+    }
+
+    // Ray-casting point-in-polygon; polygon is [[lat,lng], ...].
+    function _pointInPolygon(lat, lng, polygon) {
+      var inside = false;
+      for (var i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        var yi = polygon[i][0], xi = polygon[i][1], yj = polygon[j][0], xj = polygon[j][1];
+        if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+      }
+      return inside;
+    }
+
+    function _distanceMeters(lat1, lng1, lat2, lng2) {
+      var R = 6371000, rad = Math.PI / 180;
+      var dLat = (lat2 - lat1) * rad, dLng = (lng2 - lng1) * rad;
+      var a = Math.sin(dLat/2) ** 2 + Math.cos(lat1*rad) * Math.cos(lat2*rad) * Math.sin(dLng/2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(a));
+    }
+
+    function _polygonCentroid(polygon) {
+      var lat = 0, lng = 0;
+      polygon.forEach(function(p) { lat += p[0]; lng += p[1]; });
+      return [lat / polygon.length, lng / polygon.length];
+    }
+
+    // Exact zone/block polygon hit first, else the nearest zone within 400m.
+    function locateArea(lat, lng) {
+      var zone = null, i;
+      for (i = 0; i < ZONES.length; i++) {
+        var poly = ZONE_POLYGONS[ZONES[i].id];
+        if (poly && poly.length >= 3 && _pointInPolygon(lat, lng, poly)) { zone = ZONES[i]; break; }
+      }
+      if (zone) {
+        var block = BLOCKS.find(function(b) { return b.zoneId === zone.id && b.polygon && b.polygon.length >= 3 && _pointInPolygon(lat, lng, b.polygon); }) || null;
+        return { zone: zone, block: block, nearby: false };
+      }
+      var best = null, bestDist = Infinity;
+      ZONES.forEach(function(z) {
+        var p = ZONE_POLYGONS[z.id];
+        if (!p || !p.length) return;
+        var c = _polygonCentroid(p), d = _distanceMeters(lat, lng, c[0], c[1]);
+        if (d < bestDist) { bestDist = d; best = z; }
+      });
+      if (best && bestDist <= 400) return { zone: best, block: null, nearby: true };
+      return { zone: null, block: null, nearby: false };
+    }
+
+    async function ciAutoLocate() {
+      var btn = document.getElementById('ci-autolocate-btn');
+      var txt = document.getElementById('ci-autolocate-text');
+      var reset = function() { if (txt) txt.innerHTML = '<b>Find my zone automatically</b><br><span style="font-size:12px;opacity:.8">Uses your location to pick the zone and block you are standing in</span>'; if (btn) btn.disabled = false; };
+      if (btn) btn.disabled = true;
+      if (txt) txt.textContent = 'Finding you…';
+      try {
+        var p = await _getUserPosition();
+        var found = locateArea(p.lat, p.lng);
+        if (!found.zone) { showToast("📍 You're outside the cleanup zones — pick an area below"); reset(); return; }
+        ciSelectArea({ id: found.zone.id, name: found.zone.name, type: 'zone', zoneId: found.zone.id, emoji: found.zone.emoji || '📍' });
+        if (found.block) ciSelectArea({ id: found.block.id, name: found.block.name, type: 'block', zoneId: found.zone.id, emoji: '🧱', zoneName: found.zone.name });
+        showToast(found.nearby ? '📍 Closest zone: ' + found.zone.name : '📍 ' + found.zone.name + (found.block ? ' · ' + found.block.name : ''));
+      } catch (e) {
+        showToast('📍 Could not get your location — check browser permissions');
+      }
+      reset();
+    }
+
     function openCheckinModal(zoneId) {
       const overlay = document.getElementById('checkin-overlay');
       if (!overlay) return;
@@ -7240,8 +7349,10 @@ function saveZonePolygon() {
 
       // Celebrate any newly earned zone mascots, then offer adoption
       if (newMascots.length) {
-        setTimeout(function() { showMascotUnlock(newMascots[0]); }, 900);
-        if (adoptCandidate) setTimeout(function() { showAdoptPrompt(adoptCandidate); }, 2600);
+        // The adopt prompt only appears once the mascot card is dismissed, so overlays never stack.
+        setTimeout(function() {
+          showMascotUnlock(newMascots[0], adoptCandidate ? function() { showAdoptPrompt(adoptCandidate); } : null);
+        }, 900);
       } else if (adoptCandidate) {
         setTimeout(function() { showAdoptPrompt(adoptCandidate); }, 900);
       }
@@ -7285,7 +7396,9 @@ function saveZonePolygon() {
     }
 
     // Celebrate earning a zone's collectible mascot badge
-    function showMascotUnlock(m) {
+    var _mascotOnClose = null;
+    function showMascotUnlock(m, onClose) {
+      _mascotOnClose = onClose || null;
       const z = ZONES.find(function(x) { return x.id === m.zoneId; });
       const overlay = document.createElement('div');
       overlay.className = 'overlay open';
@@ -7310,6 +7423,8 @@ function saveZonePolygon() {
     function closeMascotUnlock() {
       const el = document.getElementById('mascot-overlay');
       if (el) el.remove();
+      const cb = _mascotOnClose; _mascotOnClose = null;
+      if (cb) cb();
     }
 
     // Close mobile search on outside click
