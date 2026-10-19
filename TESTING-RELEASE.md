@@ -1,5 +1,35 @@
 # Mind Your Block — testing release runbook
 
+# Quick local test builds (no stores, nothing published)
+
+Run from `app/`.
+
+**Android APK**
+
+```bash
+npm run apk              # builds dist-test/MindYourBlock-debug.apk
+npm run apk -- --install # also installs over USB (phone: USB debugging on)
+```
+
+Or send the APK to your phone (AirDrop doesn't work on Android; use Drive,
+email, or `adb install`) and open it. Allow "install unknown apps" when asked.
+It rebuilds from the current code each time. Requires `openjdk@21`
+(Homebrew) and the Android SDK in `~/Library/Android/sdk`.
+
+**iPhone**
+
+```bash
+npm run ios   # syncs the latest code and opens Xcode
+```
+
+In Xcode set Signing > Team to your Apple ID (free "Personal Team" works),
+select your iPhone, press Run. First time: enable Developer Mode on the phone
+and trust the profile in Settings > General > VPN & Device Management.
+Free-account installs expire after 7 days; run again to refresh. Installing
+for other people's iPhones needs TestFlight (below).
+
+---
+
 Goal: get test builds to neighbors through the stores' private testing
 tracks (no public listing needed).
 
