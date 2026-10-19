@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-10-19 18:46:28 -->
+<!-- VERSION: 2026-10-19 18:49:17 -->
 <!-- 
   SUPABASE SCHEMA ADDITIONS FOR BLOCKS:
   
@@ -5437,6 +5437,22 @@ function closeAbout() {
     // MAP INIT
     // ============================================================
 
+    // Basemap: OSM France works with or without a Referer header (the main OSM
+    // server blocks pages opened from a file). If tiles still fail, fall back to
+    // the standard OSM server. Fine for demos and small tests; use a keyed
+    // provider (MapTiler, Stadia, CARTO key) before a wide public launch.
+    function addBasemap(map) {
+      var layer = L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+        subdomains: 'abc', maxZoom: 19, crossOrigin: true,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+      var failed = 0, swapped = false;
+      layer.on('tileerror', function() {
+        if (!swapped && ++failed >= 4) { swapped = true; layer.setOptions({ subdomains: '' }); layer.setUrl('https://tile.openstreetmap.org/{z}/{x}/{y}.png'); }
+      });
+      return layer;
+    }
+
     var _userLocMarker = null;
     async function mapFindMe() {
       try {
@@ -5464,11 +5480,7 @@ function closeAbout() {
       const opt = {};
       leafletMap = L.map('map', { zoomControl: true, doubleClickZoom: false }).setView([40.4535, -80.0030], 15);
       if (leafletMap.doubleClickZoom) leafletMap.doubleClickZoom.disable();
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19,
-        crossOrigin: true
-      }).addTo(leafletMap);
+      addBasemap(leafletMap);
       leafletMap.on('zoomend moveend', scheduleLabelLayout);
 
       // "Find me" button (ported from the mobile app)
@@ -6344,10 +6356,7 @@ function saveZonePolygon() {
           if (!_eventDetailMap) {
             _eventDetailMap = L.map('event-detail-map', { zoomControl: true, scrollWheelZoom: false })
               .setView([40.4535, -80.0030], 15);
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-              maxZoom: 19, crossOrigin: true,
-              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(_eventDetailMap);
+            addBasemap(_eventDetailMap);
           }
           if (_eventDetailLayer) { _eventDetailLayer.remove(); _eventDetailLayer = null; }
           _eventDetailLayer = L.polygon(poly, { color: '#2d6a4f', weight: 2.5, fillColor: '#85ceac', fillOpacity: 0.35 }).addTo(_eventDetailMap);

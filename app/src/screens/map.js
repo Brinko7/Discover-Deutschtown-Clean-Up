@@ -1,6 +1,6 @@
 import L from 'leaflet';
 import {
-  MAP_CENTER, MAP_ZOOM, TILE_URL, TILE_ATTRIBUTION,
+  MAP_CENTER, MAP_ZOOM, TILE_URL, TILE_URL_FALLBACK, TILE_ATTRIBUTION,
   ZONES, ZONE_POLYGONS, ZONE_META, STATUS_STYLE,
   getZoneStatus, getHotSpot, blocksForZone,
 } from '../data.js';
@@ -90,7 +90,16 @@ export function renderMap(root, params = {}) {
     zoomControl: false,
     attributionControl: true,
   });
-  L.tileLayer(TILE_URL, { maxZoom: 19, attribution: TILE_ATTRIBUTION }).addTo(map);
+  const tiles = L.tileLayer(TILE_URL, { subdomains: 'abc', maxZoom: 19, attribution: TILE_ATTRIBUTION }).addTo(map);
+  let tileFailures = 0;
+  let tilesSwapped = false;
+  tiles.on('tileerror', () => {
+    if (!tilesSwapped && ++tileFailures >= 4) {
+      tilesSwapped = true;
+      tiles.setOptions({ subdomains: '' });
+      tiles.setUrl(TILE_URL_FALLBACK);
+    }
+  });
 
   // Adjacent zones (e.g. East of 279 / Interstate and Ramps / Penn Brewery
   // Area) can be small enough that their name labels overlap each other or

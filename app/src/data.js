@@ -5,7 +5,9 @@
 
 export const MAP_CENTER = [40.4535, -80.0030];
 export const MAP_ZOOM = 15;
-export const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+// OSM France works with or without a Referer; the main OSM server is the fallback (see map.js).
+export const TILE_URL = 'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png';
+export const TILE_URL_FALLBACK = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 export const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 export const SCORING = {
