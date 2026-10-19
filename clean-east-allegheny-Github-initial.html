@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-10-19 17:56:49 -->
+<!-- VERSION: 2026-10-19 18:46:28 -->
 <!-- 
   SUPABASE SCHEMA ADDITIONS FOR BLOCKS:
   
@@ -5464,12 +5464,12 @@ function closeAbout() {
       const opt = {};
       leafletMap = L.map('map', { zoomControl: true, doubleClickZoom: false }).setView([40.4535, -80.0030], 15);
       if (leafletMap.doubleClickZoom) leafletMap.doubleClickZoom.disable();
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 20,
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
         crossOrigin: true
       }).addTo(leafletMap);
+      leafletMap.on('zoomend moveend', scheduleLabelLayout);
 
       // "Find me" button (ported from the mobile app)
       var FindMe = L.Control.extend({
@@ -5629,6 +5629,29 @@ function closeAbout() {
     }
 
 
+    // Adjacent small zones have labels that overlap; keep the highest-priority
+    // ones and hide colliding ones (the zones themselves stay clickable).
+    var _labelLayoutTimer = null;
+    function scheduleLabelLayout() {
+      if (_labelLayoutTimer) return;
+      _labelLayoutTimer = setTimeout(function() { _labelLayoutTimer = null; layoutZoneLabels(); }, 60);
+    }
+    function layoutZoneLabels() {
+      var PRIORITY = { active: 4, attention: 3, overdue: 2, clean: 1 };
+      var items = Object.keys(zoneLabelMarkers).map(function(id) {
+        return { marker: zoneLabelMarkers[id], p: PRIORITY[getZoneStatus(id)] || 1 };
+      }).filter(function(it) { return it.marker && it.marker.getElement && it.marker.getElement(); });
+      items.sort(function(a, b) { return b.p - a.p; });
+      var placed = [];
+      items.forEach(function(it) {
+        var el = it.marker.getElement();
+        el.style.visibility = 'visible';
+        var r = el.getBoundingClientRect();
+        var hit = placed.some(function(q) { return r.left < q.right && r.right > q.left && r.top < q.bottom && r.bottom > q.top; });
+        if (hit) el.style.visibility = 'hidden'; else placed.push(r);
+      });
+    }
+
     function drawZone(z, coords) {
       const meta = ZONE_META[z.id] || { activeUsers: [], lastCleanup: null, daysSince: 999 };
       const status = getZoneStatus(z.id);
@@ -5654,6 +5677,7 @@ function closeAbout() {
       });
       const label = L.marker(center, { icon: lIcon, interactive: false }).addTo(leafletMap);
       zoneLabelMarkers[z.id] = label;
+      scheduleLabelLayout();
 
       // Hover
       poly.on('mouseover', e => {
@@ -6320,9 +6344,9 @@ function saveZonePolygon() {
           if (!_eventDetailMap) {
             _eventDetailMap = L.map('event-detail-map', { zoomControl: true, scrollWheelZoom: false })
               .setView([40.4535, -80.0030], 15);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-              subdomains: 'abcd', maxZoom: 20, crossOrigin: true,
-              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              maxZoom: 19, crossOrigin: true,
+              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(_eventDetailMap);
           }
           if (_eventDetailLayer) { _eventDetailLayer.remove(); _eventDetailLayer = null; }

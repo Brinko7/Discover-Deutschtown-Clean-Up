@@ -90,7 +90,7 @@ export function renderMap(root, params = {}) {
     zoomControl: false,
     attributionControl: true,
   });
-  L.tileLayer(TILE_URL, { subdomains: 'abcd', maxZoom: 20, attribution: TILE_ATTRIBUTION }).addTo(map);
+  L.tileLayer(TILE_URL, { maxZoom: 19, attribution: TILE_ATTRIBUTION }).addTo(map);
 
   // Adjacent zones (e.g. East of 279 / Interstate and Ramps / Penn Brewery
   // Area) can be small enough that their name labels overlap each other or
