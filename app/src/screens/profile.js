@@ -223,13 +223,13 @@ export function renderProfile(root) {
         <b style="font-family:var(--font-display)">Why it matters</b>
         <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Clean blocks feel safer, bring neighbors together, and show off the best of the North Side. Small, steady effort — multiplied by a whole neighborhood.</p>
       </div>
-      <p style="font-size:12px;color:var(--warm-gray);text-align:center;margin-top:14px">Questions or ideas? hello@mindyourblock.org</p>`);
+      <p style="font-size:12px;color:var(--warm-gray);text-align:center;margin-top:14px">Questions or ideas? zach.carman@gmail.com</p>`);
   });
   root.querySelector('#row-privacy').addEventListener('click', () => {
     tapHaptic();
     openSheet(`
       <h2 class="sheet-title">🔒 Privacy Policy</h2>
-      <p class="sheet-sub">Effective July 28, 2026</p>
+      <p class="sheet-sub">Effective October 20, 2026</p>
       <div class="card" style="margin-bottom:10px">
         <b style="font-family:var(--font-display)">What this app collects</b>
         <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Your profile name, check-in details (zone/block, time, bags, notes), and any photos you attach to a check-in. If you allow it, we use your location just once, in the moment, to figure out which zone or block you're standing in — we never track your location in the background.</p>
@@ -242,6 +242,6 @@ export function renderProfile(root) {
         <b style="font-family:var(--font-display)">Your choices</b>
         <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Check in anonymously to hide your name from the activity feed and leaderboard. Uninstalling the app (or clearing its storage) removes all of your locally stored data.</p>
       </div>
-      <p style="font-size:12px;color:var(--warm-gray);text-align:center;margin-top:14px">The full policy, including how the Mind Your Block website handles account data, is available at hello@mindyourblock.org.</p>`);
+      <p style="font-size:12px;color:var(--warm-gray);text-align:center;margin-top:14px">The full policy, including how the Mind Your Block website handles account data, is at <a href="https://brinko7.github.io/Discover-Deutschtown-Clean-Up/privacy-policy.html" target="_blank" rel="noopener" style="color:var(--green)">brinko7.github.io/Discover-Deutschtown-Clean-Up/privacy-policy.html</a>. Contact: zach.carman@gmail.com.</p>`);
   });
 }
