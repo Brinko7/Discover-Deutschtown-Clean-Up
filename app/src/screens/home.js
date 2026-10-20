@@ -1,4 +1,4 @@
-import { HOT_SPOTS, ZONES, zoneById, formatMinutes, MIXER, VENMO_HANDLE } from '../data.js';
+import { HOT_SPOTS, ZONES, zoneById, formatMinutes, MIXER, VENMO_HANDLE, DONATIONS_ENABLED } from '../data.js';
 import { getState, activityFeed, timeAgo } from '../store.js';
 import { icon, esc, openSheet, closeSheet, toast } from '../ui.js';
 import { icons } from '../icons.js';
@@ -138,11 +138,11 @@ export function renderHome(root) {
       <div class="section">
         <div class="section-title">Get involved</div>
         <div class="card" style="padding:4px 16px">
-          <button class="list-row" id="row-donate">
+          ${DONATIONS_ENABLED ? `          <button class="list-row" id="row-donate">
             <span class="row-icon">${icons.heart}</span>
             <span><b style="font-family:var(--font-display)">Support the cleanups</b><br><span style="font-size:12px;color:var(--warm-gray)">Chip in for bags, gloves &amp; grabbers</span></span>
             <span class="row-chevron">${icons.chevronRight}</span>
-          </button>
+          </button>` : ''}
           <button class="list-row" id="row-share">
             <span class="row-icon">${icons.share}</span>
             <span><b style="font-family:var(--font-display)">Spread the word</b><br><span style="font-size:12px;color:var(--warm-gray)">Invite a neighbor to join in</span></span>
@@ -171,10 +171,13 @@ export function renderHome(root) {
       navigate('map', { zoneId: el.dataset.gotoZone });
     });
   });
-  root.querySelector('#row-donate').addEventListener('click', () => {
-    tapHaptic();
-    openDonateSheet();
-  });
+  const donateRow = root.querySelector('#row-donate');
+  if (donateRow) {
+    donateRow.addEventListener('click', () => {
+      tapHaptic();
+      openDonateSheet();
+    });
+  }
   root.querySelector('#row-share').addEventListener('click', async () => {
     tapHaptic();
     const res = await shareApp();

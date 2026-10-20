@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-10-19 18:49:17 -->
+<!-- VERSION: 2026-10-19 21:18:06 -->
 <!-- 
   SUPABASE SCHEMA ADDITIONS FOR BLOCKS:
   
@@ -1665,6 +1665,9 @@ function closeAbout() {
       }
     }
   
+    /* Donations are off while the app is in testing (see DONATIONS_ENABLED) */
+    .no-donations [data-donation] { display: none !important; }
+
     /* ── DONATE SECTION ── */
     .donate-amount-btn {
       padding: 12px 22px;
@@ -2902,7 +2905,7 @@ function closeAbout() {
       <button class="nav-btn" onclick="showAbout()">About</button>
       <button class="nav-btn" onclick="navTo('map')">Map</button>
       <button class="nav-btn" onclick="navTo('schedule')">Schedule</button>
-      <button class="nav-btn" onclick="navTo('donate')">💚 Donate</button>
+      <button class="nav-btn" data-donation onclick="navTo('donate')">💚 Donate</button>
       <div id="nav-auth"></div>
       <button class="nav-btn nav-btn--primary" onclick="openCheckinModal(null)">+ Check In</button>
     </div>
@@ -3020,7 +3023,7 @@ function closeAbout() {
         <button onclick="navTo('map')" class="hiw-btn" style="border-color:#2d6a4f;color:#2d6a4f">Browse blocks →</button>
       </div>
 
-      <div class="hiw-card" style="background:#e8f2ed">
+      <div class="hiw-card" data-donation style="background:#e8f2ed">
         <div class="hiw-icon" style="background:#2d6a4f">💚</div>
         <div class="hiw-title">Donate</div>
         <div class="hiw-desc">Even a small donation helps fund bags, gloves, and events. 100% stays in the neighborhood.</div>
@@ -3283,7 +3286,7 @@ function closeAbout() {
 
 
   <!-- ===== DONATE SECTION ===== -->
-  <div class="section" id="donate-section" data-reveal>
+  <div class="section" id="donate-section" data-donation data-reveal>
     <div style="background:linear-gradient(135deg,#1a1a2e,#2d6a4f);border-radius:20px;padding:48px 40px;text-align:center;color:#fff">
 
       <svg width="30" height="30" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="margin-bottom:8px">
@@ -3776,6 +3779,11 @@ function closeAbout() {
     });
 
     // ── SUPABASE CONFIG ──────────────────────────────────────────
+    // Donations are OFF while the app is in testing (no legal entity or payment account yet).
+    // Flip to true after the nonprofit exists and VENMO_HANDLE is its real account.
+    const DONATIONS_ENABLED = false;
+    if (!DONATIONS_ENABLED) document.documentElement.classList.add('no-donations');
+
     const SUPABASE_URL      = 'https://tbaovavrxdlpkyexfazm.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRiYW92YXZyeGRscGt5ZXhmYXptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMzU4NjIsImV4cCI6MjA5NDcxMTg2Mn0.sQFtpP6pLFoPrJt6Z5HbyAfkAQ9bnIHlzNXOlkc6BFc';
     let sb = null;
@@ -3968,6 +3976,7 @@ function closeAbout() {
 
 
     function donateViaVenmo() {
+      if (!DONATIONS_ENABLED) return;
       if (!selectedDonateAmount) {
         showToast('Please enter a donation amount first.');
         return;
@@ -6542,6 +6551,7 @@ function saveZonePolygon() {
         return;
       }
       if (target === 'donate') {
+        if (!DONATIONS_ENABLED) return;
         setTimeout(() => {
           const el = document.getElementById('donate-section');
           if (el) el.scrollIntoView({ behavior: 'smooth' });

@@ -263,6 +263,10 @@ export const MIXER = {
   blurb: 'Every cleaner is invited to our quarterly neighborhood mixer — food, drinks, and the neighbors who keep this place looking good.',
 };
 
+// Donations are OFF while the app is in testing (no legal entity or payment account yet).
+// Flip to true after the nonprofit exists and VENMO_HANDLE is its real account.
+export const DONATIONS_ENABLED = false;
+
 // ⚠️ Placeholder from the web version — replace with the real Venmo handle
 export const VENMO_HANDLE = 'CleanEastAllegheny';
 
