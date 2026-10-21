@@ -1,5 +1,5 @@
 import { HOT_SPOTS, ZONES, zoneById, formatMinutes, MIXER, VENMO_HANDLE, DONATIONS_ENABLED } from '../data.js';
-import { getState, activityFeed, timeAgo } from '../store.js';
+import { getState, activityFeed, timeAgo, refreshRemote } from '../store.js';
 import { icon, esc, openSheet, closeSheet, toast } from '../ui.js';
 import { icons } from '../icons.js';
 import { tapHaptic, shareApp } from '../native.js';
@@ -81,6 +81,7 @@ function openDonateSheet() {
 }
 
 export function renderHome(root) {
+  refreshRemote();
   const s = getState();
   const name = s.profile.name || 'Neighbor';
   const hasStats = s.profile.sessions > 0;

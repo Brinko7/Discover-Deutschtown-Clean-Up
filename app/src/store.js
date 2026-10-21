@@ -1,9 +1,16 @@
 // App state with persistence via Capacitor Preferences.
 // On web this transparently falls back to localStorage, so the same
 // code runs in the browser during development and on device.
-// When Supabase is connected, sync happens here (see README).
+//
+// The phone is the source of truth for your own history, so the app works fully offline.
+// Changes are also queued in an outbox and sent to Supabase (see backend.js) when there is a connection.
 import { Preferences } from '@capacitor/preferences';
 import { ACTIVITY_FEED_SEED, zoneById } from './data.js';
+import {
+  DONE, RETRY,
+  ensureSession, sendProfileName, sendCheckin, sendRsvp, sendAdoption,
+  fetchLeaderboard, fetchFeed,
+} from './backend.js';
 
 const KEY = 'myb_state_v1';
 
@@ -24,10 +31,24 @@ const defaults = () => ({
   blockCheckins: {}, // blockId -> count (drives adopt prompt)
   mascots: [], // unlocked zoneIds
   activity: [], // user-generated activity entries, newest first
+  outbox: [], // changes waiting to be sent: { t: 'profile'|'checkin'|'rsvp'|'adopt', ... }
 });
 
 let state = defaults();
 const listeners = new Set();
+
+// Shared data from the server (leaderboard, activity feed). Null until the first successful fetch.
+const remote = { leaders: null, feed: null, at: 0 };
+const remoteListeners = new Set();
+
+// Check-in ids are UUIDs so the server can ignore a repeated send.
+export function uuid() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
 
 export async function initStore() {
   try {
@@ -36,6 +57,9 @@ export async function initStore() {
   } catch (e) {
     console.warn('Failed to load saved state, starting fresh', e);
   }
+  // Sync in the background, never block the app on the network.
+  window.addEventListener('online', () => syncNow());
+  syncNow();
   return state;
 }
 
@@ -66,28 +90,131 @@ export function update(mutator) {
   notify();
 }
 
-export function setProfileName(name) {
+// ── Sync with Supabase ───────────────────────────────────────
+
+let flushing = false;
+let retryTimer = null;
+
+function queue(op) {
   update((s) => {
-    s.profile.name = name.trim();
-    s.profile.onboarded = true;
+    s.outbox.push(op);
   });
+  flushOutbox();
+}
+
+async function sendOp(op) {
+  if (op.t === 'profile') return sendProfileName(op.name);
+  if (op.t === 'rsvp') return sendRsvp(op.eventId, op.going);
+  if (op.t === 'adopt') return sendAdoption(op.blockId, op.zoneId);
+  if (op.t === 'checkin') {
+    const checkin = state.checkins.find((c) => c.id === op.id);
+    if (!checkin) return DONE; // deleted locally, nothing to send
+    return sendCheckin(checkin);
+  }
+  return DONE;
+}
+
+// Sends queued changes in order. Stops at the first temporary failure and tries again later.
+export async function flushOutbox() {
+  if (flushing) return;
+  flushing = true;
+  let sentCheckin = false;
+  try {
+    while (state.outbox.length) {
+      const op = state.outbox[0];
+      const result = await sendOp(op);
+      if (result === RETRY) {
+        clearTimeout(retryTimer);
+        retryTimer = setTimeout(flushOutbox, 30000);
+        break;
+      }
+      if (op.t === 'checkin' && result === DONE) sentCheckin = true;
+      state.outbox.shift();
+      await persist();
+    }
+  } finally {
+    flushing = false;
+  }
+  if (sentCheckin) refreshRemote(true);
+}
+
+export function getRemote() {
+  return remote;
+}
+
+export function subscribeRemote(fn) {
+  remoteListeners.add(fn);
+  return () => remoteListeners.delete(fn);
+}
+
+// Pulls the shared leaderboard and feed. Rate limited unless forced.
+export async function refreshRemote(force = false) {
+  if (!force && Date.now() - remote.at < 30000) return;
+  remote.at = Date.now();
+  const [leaders, feed] = await Promise.all([fetchLeaderboard(20), fetchFeed(30)]);
+  if (leaders) remote.leaders = leaders;
+  if (feed) remote.feed = feed;
+  if (leaders || feed) remoteListeners.forEach((fn) => fn(remote));
+}
+
+// Call on start, when the connection returns, and when the app comes back to the foreground.
+export async function syncNow() {
+  // No guest account is created until someone has actually started using the app.
+  if (!state.profile.onboarded && !state.outbox.length) return;
+  if (!(await ensureSession())) return;
+  await flushOutbox();
+  await refreshRemote(true);
+}
+
+// Wipes everything on this phone (after the server data was deleted).
+export async function resetAll() {
+  try {
+    await Preferences.remove({ key: KEY });
+  } catch (e) {
+    console.warn('Failed to clear saved state', e);
+  }
+  state = defaults();
+  remote.leaders = null;
+  remote.feed = null;
+  remote.at = 0;
+}
+
+// ── State changes ────────────────────────────────────────────
+
+export function setProfileName(name) {
+  const clean = name.trim();
+  update((s) => {
+    s.profile.name = clean;
+    s.profile.onboarded = true;
+    // Only the latest name needs sending.
+    s.outbox = s.outbox.filter((op) => op.t !== 'profile');
+  });
+  queue({ t: 'profile', name: clean });
 }
 
 export function toggleRsvp(eventId) {
+  let going = false;
   update((s) => {
     const i = s.rsvps.indexOf(eventId);
     if (i >= 0) s.rsvps.splice(i, 1);
     else s.rsvps.push(eventId);
+    going = s.rsvps.includes(eventId);
+    // A newer choice for the same event replaces an older one still waiting.
+    s.outbox = s.outbox.filter((op) => !(op.t === 'rsvp' && op.eventId === eventId));
   });
-  return state.rsvps.includes(eventId);
+  queue({ t: 'rsvp', eventId, going });
+  return going;
 }
 
 export function adoptBlock(blockId, zoneId) {
+  let added = false;
   update((s) => {
     if (!s.adoptions.some((a) => a.blockId === blockId)) {
       s.adoptions.push({ blockId, zoneId, adoptedAt: Date.now() });
+      added = true;
     }
   });
+  if (added) queue({ t: 'adopt', blockId, zoneId });
 }
 
 export function isAdopted(blockId) {
@@ -133,11 +260,39 @@ export function recordCheckin(checkin) {
       color: '#2d6a4f',
     });
   });
+  queue({ t: 'checkin', id: checkin.id });
   return unlocked;
 }
 
-// Live feed = the user's real activity followed by demo seed entries.
+const FEED_COLORS = ['#2d6a4f', '#0077b6', '#c96f2f', '#5b8c6e', '#c77dff', '#f4a261', '#8c9aad', '#b5703a'];
+
+export function colorFor(name) {
+  let h = 0;
+  for (const ch of String(name || '?')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return FEED_COLORS[h % FEED_COLORS.length];
+}
+
+// Live feed. Once the server has a few real entries, show those (plus anything of yours not sent yet).
+// Until then, your own activity followed by the demo seed so the feed never looks empty.
 export function activityFeed() {
+  if (remote.feed && remote.feed.length >= 3) {
+    const sent = new Set(remote.feed.map((f) => f.id));
+    const real = remote.feed.map((f) => ({
+      id: f.id,
+      type: 'checkin',
+      name: f.display_name,
+      anonymous: f.display_name === 'Anonymous',
+      isYou: f.is_you,
+      zoneId: f.zone_id,
+      zoneName: zoneById(f.zone_id)?.name || '',
+      blockName: f.block_name,
+      bags: Number(f.bags) || 0,
+      ts: new Date(f.created_at).getTime(),
+      color: colorFor(f.display_name),
+    }));
+    const unsent = state.activity.filter((a) => !sent.has(a.id.replace(/^u_/, '')));
+    return [...unsent, ...real].sort((a, b) => b.ts - a.ts);
+  }
   const now = Date.now();
   const seed = ACTIVITY_FEED_SEED.map((a) => ({
     ...a,

@@ -1,5 +1,6 @@
 import { MOCK_LEADERS, ZONE_MASCOTS, zoneById, blockById, formatMinutes, ADOPTION_RULES } from '../data.js';
-import { getState, setProfileName, timeAgo } from '../store.js';
+import { getState, setProfileName, timeAgo, getRemote, refreshRemote, colorFor, resetAll } from '../store.js';
+import { deleteMyAccount } from '../backend.js';
 import { icon, esc, openSheet, closeSheet, toast } from '../ui.js';
 import { icons } from '../icons.js';
 import { tapHaptic, shareApp } from '../native.js';
@@ -14,6 +15,8 @@ function initials(name) {
     .toUpperCase() || '🙂';
 }
 
+// Real neighbors once the server has at least three of them, example names until then.
+// The returned array has `.example = true` when it is showing example names.
 function leaderboardData() {
   const s = getState();
   const you = {
@@ -23,7 +26,21 @@ function leaderboardData() {
     isYou: true,
     _color: '#2d6a4f',
   };
-  return [...MOCK_LEADERS, you].sort((a, b) => b.points - a.points);
+  const real = getRemote().leaders;
+  if (real && real.length >= 3) {
+    const rows = real.map((r) => ({
+      id: 'r' + r.rank,
+      full_name: r.full_name,
+      points: Number(r.points),
+      streak_weeks: r.streak_weeks,
+      isYou: r.is_you,
+      _color: r.is_you ? '#2d6a4f' : colorFor(r.full_name),
+    }));
+    // Not on the board yet (no named check-ins), so show where you stand.
+    if (!rows.some((r) => r.isYou)) rows.push(you);
+    return Object.assign(rows.sort((a, b) => b.points - a.points), { example: false });
+  }
+  return Object.assign([...MOCK_LEADERS, you].sort((a, b) => b.points - a.points), { example: true });
 }
 
 function podiumHtml(top3) {
@@ -87,6 +104,7 @@ function editNameSheet(rerender) {
 }
 
 export function renderProfile(root) {
+  refreshRemote();
   const s = getState();
   const leaders = leaderboardData();
   const youRank = leaders.findIndex((l) => l.isYou) + 1;
@@ -118,6 +136,7 @@ export function renderProfile(root) {
 
       <div class="section">
         <div class="section-title">🏆 Leaderboard</div>
+        ${leaders.example ? '<p style="font-size:12px;color:var(--warm-gray);margin:-4px 2px 8px">Example names until neighbors start checking in.</p>' : ''}
         <div class="card">
           ${podiumHtml(leaders.slice(0, 3))}
           <div style="margin-top:8px">
@@ -193,6 +212,11 @@ export function renderProfile(root) {
             <span><b style="font-family:var(--font-display)">Privacy Policy</b></span>
             <span class="row-chevron">${icons.chevronRight}</span>
           </button>
+          <button class="list-row" id="row-delete">
+            <span class="row-icon">🗑️</span>
+            <span><b style="font-family:var(--font-display);color:#c0392b">Delete my data</b><br><span style="font-size:12px;color:var(--warm-gray)">Removes your account, check-ins and photos</span></span>
+            <span class="row-chevron">${icons.chevronRight}</span>
+          </button>
         </div>
       </div>
     </div>`;
@@ -232,16 +256,42 @@ export function renderProfile(root) {
       <p class="sheet-sub">Effective October 20, 2026</p>
       <div class="card" style="margin-bottom:10px">
         <b style="font-family:var(--font-display)">What this app collects</b>
-        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Your profile name, check-in details (zone/block, time, bags, notes), and any photos you attach to a check-in. If you allow it, we use your location just once, in the moment, to figure out which zone or block you're standing in — we never track your location in the background.</p>
+        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Your profile name, check-in details (zone/block, time, bags, notes), RSVPs, adopted blocks, and any photos you attach to a check-in. If you allow it, we use your location just once, in the moment, to figure out which zone or block you're standing in. We never track your location in the background, and your coordinates are not stored.</p>
       </div>
       <div class="card" style="margin-bottom:10px">
         <b style="font-family:var(--font-display)">Where it's stored</b>
-        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Everything above stays on your device. This version of the app has no account system and does not send your data to us or anyone else. Camera photos never leave your phone.</p>
+        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Your data is kept on your phone and sent to a private database run for this project (hosted by Supabase) so the leaderboard and activity feed work. You are signed in as an anonymous guest, with no email or password. Photos are stored privately and only you can see them. Nothing is sold or used for ads.</p>
       </div>
       <div class="card">
         <b style="font-family:var(--font-display)">Your choices</b>
-        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Check in anonymously to hide your name from the activity feed and leaderboard. Uninstalling the app (or clearing its storage) removes all of your locally stored data.</p>
+        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Check in anonymously to hide your name from the activity feed and leaderboard. Use "Delete my data" below to remove your account, check-ins and photos from our servers and this phone. Uninstalling the app also removes your guest login, so that data can no longer be reached.</p>
       </div>
       <p style="font-size:12px;color:var(--warm-gray);text-align:center;margin-top:14px">The full policy, including how the Mind Your Block website handles account data, is at <a href="https://brinko7.github.io/Discover-Deutschtown-Clean-Up/privacy-policy.html" target="_blank" rel="noopener" style="color:var(--green)">brinko7.github.io/Discover-Deutschtown-Clean-Up/privacy-policy.html</a>. Contact: zach.carman@gmail.com.</p>`);
+  });
+
+  root.querySelector('#row-delete').addEventListener('click', () => {
+    tapHaptic();
+    const wrap = openSheet(`
+      <h2 class="sheet-title">🗑️ Delete my data?</h2>
+      <p class="sheet-sub">This removes your account, check-ins, RSVPs, adopted blocks and photos from our servers and from this phone. It can't be undone.</p>
+      <button class="btn btn--primary btn--block" id="del-confirm" style="background:#c0392b">Delete everything</button>
+      <button class="btn btn--ghost btn--block" id="del-cancel" style="margin-top:8px">Keep my data</button>`);
+    wrap.querySelector('#del-cancel').addEventListener('click', () => closeSheet());
+    wrap.querySelector('#del-confirm').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      btn.textContent = 'Deleting…';
+      try {
+        await deleteMyAccount();
+      } catch (err) {
+        console.warn('Delete failed', err);
+        btn.disabled = false;
+        btn.textContent = 'Delete everything';
+        toast('Connect to the internet to delete your data', { emoji: '📡' });
+        return;
+      }
+      await resetAll();
+      window.location.reload();
+    });
   });
 }

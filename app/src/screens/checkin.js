@@ -5,7 +5,7 @@ import {
   ZONES, blocksForZone, blockById, zoneById,
   getHotSpot, computeScore, ADOPTION_RULES, ZONE_MASCOTS,
 } from '../data.js';
-import { getState, recordCheckin, adoptedBlockIds, adoptBlock } from '../store.js';
+import { getState, recordCheckin, adoptedBlockIds, adoptBlock, uuid } from '../store.js';
 import { icon, esc, openSheet, closeSheet, toast, celebrate } from '../ui.js';
 import { icons } from '../icons.js';
 import { tapHaptic, successHaptic, takePhoto, getPosition, locateArea } from '../native.js';
@@ -336,7 +336,7 @@ function finish(root) {
   const bags = session.bags + session.partial;
 
   const checkin = {
-    id: String(Date.now()),
+    id: uuid(),
     ts: Date.now(),
     minutes,
     bags,

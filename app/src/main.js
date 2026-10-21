@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { App as CapApp } from '@capacitor/app';
-import { initStore, getState, setProfileName } from './store.js';
+import { initStore, getState, setProfileName, syncNow, subscribeRemote } from './store.js';
 import { icons } from './icons.js';
 import { tapHaptic } from './native.js';
 import { closeSheet } from './ui.js';
@@ -103,6 +103,8 @@ async function boot() {
     try {
       await StatusBar.setStyle({ style: Style.Dark });
     } catch (e) { /* not critical */ }
+    // Coming back to the app: send anything queued and refresh the shared data.
+    CapApp.addListener('resume', () => syncNow());
     // Android back button: close sheet or go home before exiting.
     CapApp.addListener('backButton', ({ canGoBack }) => {
       const sheetOpen = document.querySelector('.sheet-wrap');
@@ -124,6 +126,17 @@ async function boot() {
   } else {
     navigate('home');
   }
+
+  // Fresh leaderboard or feed arrived: redraw Home or You, but never under an open sheet.
+  subscribeRemote(() => {
+    if (document.querySelector('.onboard-screen')) return; // never replace the welcome screen
+    if (document.querySelector('.sheet-wrap')) return;
+    if (currentTab !== 'home' && currentTab !== 'profile') return;
+    const root = document.getElementById('screen-root');
+    const top = root.scrollTop;
+    navigate(currentTab);
+    root.scrollTop = top;
+  });
 
   if (Capacitor.isNativePlatform()) {
     try {
