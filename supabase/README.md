@@ -11,6 +11,13 @@ Only the **publishable** key belongs in the repo (`app/src/config.js`). It is sa
 - `migrations/20261021000000_init.sql`: tables (`profiles`, `checkins`, `rsvps`, `adoptions`), row level security,
   leaderboard and activity feed functions, in-app account deletion, and the private `checkin-photos` bucket.
 
+## Status
+
+- Schema **applied** to the live project through the dashboard SQL editor. Checked afterwards: all four tables have row level security on,
+  13 policies exist, the three functions exist, the `checkin-photos` bucket is private, and the `anon` role cannot call the leaderboard.
+- **Anonymous sign-ins: still OFF.** Turn on in Authentication, Sign In / Providers, "Allow anonymous sign-ins", then Save changes.
+  The app cannot create guest accounts until this is on.
+
 ## Apply it
 
 Either paste the migration into Dashboard, SQL Editor, and run it, or use the CLI:
