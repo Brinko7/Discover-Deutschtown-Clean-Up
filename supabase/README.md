@@ -10,13 +10,27 @@ Only the **publishable** key belongs in the repo (`app/src/config.js`). It is sa
 
 - `migrations/20261021000000_init.sql`: tables (`profiles`, `checkins`, `rsvps`, `adoptions`), row level security,
   leaderboard and activity feed functions, in-app account deletion, and the private `checkin-photos` bucket.
+- `migrations/20261021010000_unify_web_and_app.sql`: one schema for both the phone app and the web page. Adds profile fields
+  (`full_name`, `username`, `neighborhood`, `zone`, `avatar_url`, account type), event links on check-ins, the `events`,
+  `event_draws` and `feedback` tables, the public `avatars` bucket, and a richer leaderboard.
+
+Run the files in order. Both are safe to re-run.
 
 ## Status
 
-- Schema **applied** to the live project through the dashboard SQL editor. Checked afterwards: all four tables have row level security on,
-  13 policies exist, the three functions exist, the `checkin-photos` bucket is private, and the `anon` role cannot call the leaderboard.
-- **Anonymous sign-ins: still OFF.** Turn on in Authentication, Sign In / Providers, "Allow anonymous sign-ins", then Save changes.
-  The app cannot create guest accounts until this is on.
+- Both migrations are **applied** to the live project. Verified: 7 tables with row level security on, 23 policies,
+  leaderboard, activity feed and account deletion functions, `checkin-photos` private, `avatars` public, signed-out callers cannot
+  read the leaderboard or any table, and nobody can read the feedback box back.
+- **Anonymous sign-ins: ON.** The phone app signs each install in as a guest the first time the user starts using it (not before).
+- The old project (`tbaovavrxdlpkyexfazm`) is **no longer used anywhere** in the code. Its key is gone from the web page.
+
+## How the two clients use it
+
+- **Phone app** (`app/src/backend.js`, `app/src/store.js`): guest account, an outbox that retries offline, reads the leaderboard and feed
+  through functions, "Delete my data" removes photos and calls `delete_my_account()`.
+- **Web page** (top of the script in `clean-east-allegheny-Github-initial.html`): email and password accounts, profile editing,
+  events, raffle draws, feedback. Signed-in users get the real leaderboard, guests see example names.
+- The web page and the app share the same check-in table, so activity from both shows up in one leaderboard.
 
 ## Apply it
 
@@ -31,14 +45,16 @@ supabase db push
 
 ## Settings to turn on in the dashboard
 
-- Authentication, Sign In / Providers: **Allow anonymous sign-ins** (guests get a real user id).
-- Authentication, Attack Protection: leave CAPTCHA off for testing, but know that anonymous sign-ins can be abused. Turn it on before a public launch.
+- Authentication, Sign In / Providers: **Allow anonymous sign-ins** is ON (guests get a real user id).
+- Web sign-up uses email confirmation. Supabase's built-in email sender is rate limited (a few per hour), so set up a real SMTP sender before inviting many people to create web accounts.
+- Authentication, Attack Protection: CAPTCHA is off for testing. Anonymous sign-ins can be abused, so turn it on before a public launch.
 
 ## Known limits of the test build
 
 - Points are calculated on the phone. A determined tester could send inflated points. Fine for neighbors, not for prizes.
   Before a real raffle, move scoring into a database function.
-- Anonymous guests lose their account if they uninstall or clear app data, because there is no email to recover it.
+- Anonymous guests lose their account if they uninstall or clear app data, because there is no email to recover it. Their rows stay in the database, unreachable.
+- Check-ins made on a phone before this backend existed stay on that phone only.
 - Deleting an account in the app removes the user's photos through the Storage API, then calls `delete_my_account()`.
 
 ## Moving to an organization later

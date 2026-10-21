@@ -10,30 +10,35 @@ Play will not open closed testing until every task under "Finish setting up your
 
 | Task | Draft answer | Notes |
 | --- | --- | --- |
-| Privacy policy | `NEEDS` public URL | Host `privacy-policy.html` (repo root) somewhere public. GitHub Pages on the repo is the quickest. Policy still lists the placeholder email `hello@mindyourblock.org`, replace it first. After Supabase is connected, the policy must also describe accounts, check-in data and photos. |
-| Sign in details (app access) | "All functionality is available without special access" | True while the app works as a guest. If Supabase sign-in becomes mandatory, add a test account here for Google's reviewer. |
+| Privacy policy | https://brinko7.github.io/Discover-Deutschtown-Clean-Up/privacy-policy.html | Live, contact zach.carman@gmail.com. **Needs an update pass now that the app sends data to Supabase** (guest accounts, check-ins, photos, in-app deletion). Merlin owns that edit. |
+| Sign in details (app access) | "All functionality is available without special access" | True: the app signs in as an anonymous guest automatically, no credentials needed. |
 | Ads | No ads | Correct, no ad SDK. |
-| Content rating | Answer the IARC questionnaire truthfully at the time | No violence, sexual content, gambling, or purchases. The one judgment call is user-generated content: once Supabase is on, notes and photos from check-ins can be seen by other users, answer "yes" then. Expect Everyone or Teen. |
+| Content rating | Answer the IARC questionnaire truthfully at the time | No violence, sexual content, gambling, or purchases. Notes and photos are private to the user. Other users only see a display name, a zone and a bag count in the leaderboard and feed, so answer the "users interact or share content" question carefully and honestly. Expect Everyone. |
 | Target audience | 18 and over (recommended for testing) | Avoids the children's-app rules. Revisit before production. |
 | Data safety | See the table below | Must match the privacy policy and the real behavior of the build. |
 | Government apps | No | |
 | Financial features | None | Donations are hidden (`DONATIONS_ENABLED = false`). |
 | Health | No health features | |
 
-### Data safety draft (assumes Supabase is connected)
+### Data safety draft (the app now sends data to Supabase)
+
+What the phone app sends to its private Supabase database: a guest account id, the display name, check-ins (zone and block, minutes, bags, points, optional note), RSVPs, adopted blocks, and optional check-in photos.
 
 | Data | Collected | Why | Shared | Optional |
 | --- | --- | --- | --- | --- |
-| Name or nickname | Yes | Profile, leaderboard | No (a processor stores it) | Yes, can check in anonymously |
-| Email address | Yes, if accounts are on | Sign in | No | Yes |
-| Photos | Yes | Attach to check-ins | No | Yes |
-| Approximate or precise location | Used on device to find the zone and block | App function | Not sent, only the chosen zone and block are stored | Yes |
-| App activity (check-ins, RSVPs, points) | Yes | App function, leaderboard | No | n/a |
-| User IDs | Yes | Account | No | n/a |
+| Name or nickname | Yes | Leaderboard and activity feed | No. Only the display name is visible to other users, and not for anonymous check-ins | Yes, can check in anonymously |
+| Email address | **No** in the phone app (guest sign-in, no email). The web page collects it for web accounts | n/a | n/a | n/a |
+| Photos | Yes | Attached to check-ins. Stored privately, only the owner can see them | No | Yes |
+| Other user-generated content (notes) | Yes | Stored with the check-in, never shown to other users | No | Yes |
+| Location | **No.** Used on the device only to pick a zone and block. Coordinates are never sent or stored | App function | n/a | Yes |
+| App activity (check-ins, RSVPs, adoptions, points) | Yes | App function, leaderboard | No | n/a |
+| User ID (anonymous guest id) | Yes | Account | No | n/a |
 
 - Encrypted in transit: Yes (HTTPS).
-- Users can request deletion: Yes, by email (needs the real contact address).
+- Users can request deletion: Yes. In the app: You tab, "Delete my data" removes the account, check-ins and photos. Also by email.
+- Processor: Supabase hosts the database as a service provider. Play counts that as "not shared".
 - Not sold, not used for ads.
+- Declare **Account creation: users can create an account in the app** (guest accounts), and give the in-app deletion path above.
 
 ## Store presence
 
