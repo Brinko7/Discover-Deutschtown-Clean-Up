@@ -8,7 +8,7 @@ import { Preferences } from '@capacitor/preferences';
 import { zoneById, normalizeEvent, setZoneMeta } from './data.js';
 import {
   DONE, RETRY,
-  ensureSession, sendProfileName, sendCheckin, sendRsvp, sendAdoption,
+  ensureSession, currentUserId, sendProfileName, sendCheckin, sendRsvp, sendAdoption,
   fetchLeaderboard, fetchFeed, fetchEvents, fetchZoneActivity,
 } from './backend.js';
 
@@ -18,6 +18,7 @@ const defaults = () => ({
   profile: {
     name: '',
     onboarded: false,
+    ownerId: null,
     points: 0,
     bags: 0,
     minutes: 0,
@@ -57,6 +58,16 @@ export async function initStore() {
     if (value) state = { ...defaults(), ...JSON.parse(value) };
   } catch (e) {
     console.warn('Failed to load saved state, starting fresh', e);
+  }
+  // Local state belongs to one account. If a different account is signed in
+  // on this phone than the one that saved this state (or nobody is), start
+  // clean for them: nobody inherits the previous person's totals, history
+  // or queued sends.
+  const uid = await ensureSession();
+  if (state.profile.ownerId !== uid) {
+    state = defaults();
+    state.profile.ownerId = uid;
+    await persist();
   }
   // Show the last known events and zone status right away, before the network answers.
   remote.events = state.cache?.events || [];
@@ -174,8 +185,7 @@ export async function refreshRemote(force = false) {
 
 // Call on start, when the connection returns, and when the app comes back to the foreground.
 export async function syncNow() {
-  // No guest account is created until someone has actually started using the app.
-  if (!state.profile.onboarded && !state.outbox.length) return;
+  // Nothing syncs while signed out: there are no guest accounts anymore.
   if (!(await ensureSession())) return;
   await flushOutbox();
   await refreshRemote(true);
@@ -189,6 +199,7 @@ export async function resetAll() {
     console.warn('Failed to clear saved state', e);
   }
   state = defaults();
+  state.profile.ownerId = currentUserId();
   remote.leaders = null;
   remote.feed = null;
   remote.events = null;

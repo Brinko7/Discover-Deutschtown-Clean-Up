@@ -3571,6 +3571,7 @@ function closeAbout() {
               type="password" placeholder="Your password"></div>
           <button class="modal-submit" style="width:100%;margin-bottom:8px" onclick="signIn()" id="signin-btn">Sign
             In</button>
+          <div class="auth-switch"><a onclick="forgotPassword()">Forgot password?</a></div>
           <div class="auth-switch">Don't have an account? <a onclick="showSignup()">Sign up free</a></div>
         </div>
         <div id="auth-form-signup" style="display:none">
@@ -3581,7 +3582,7 @@ function closeAbout() {
           <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="signup-email"
               type="email" placeholder="you@example.com"></div>
           <div class="form-group"><label class="form-label">Password</label><input class="form-input"
-              id="signup-password" type="password" placeholder="At least 6 characters"></div>
+              id="signup-password" type="password" placeholder="At least 8 characters"></div>
 
           <!-- Business account -->
           <div class="sponsor-toggle-wrap" style="margin:16px 0 4px">
@@ -4513,10 +4514,40 @@ function closeAbout() {
     }
 
 
+    // Password reset links (sent from the app or this page) land here with a
+    // recovery session. Let the user set a new password, then sign the
+    // recovery session out so they sign in fresh with it.
+    async function showPasswordReset() {
+      var overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,24,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px';
+      overlay.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:360px;width:100%;padding:24px;box-shadow:0 12px 40px rgba(0,0,0,.25)">' +
+        '<h3 style="margin:0 0 6px;font-size:19px">Set a new password</h3>' +
+        '<p style="margin:0 0 14px;font-size:13.5px;color:#666">You followed a password reset link. Choose a new password for your Mind Your Block account.</p>' +
+        '<input id="reset-pw" type="password" placeholder="New password (8+ characters)" style="width:100%;padding:10px 12px;border:1px solid #ccc;border-radius:8px;margin-bottom:8px;box-sizing:border-box">' +
+        '<input id="reset-pw2" type="password" placeholder="Repeat new password" style="width:100%;padding:10px 12px;border:1px solid #ccc;border-radius:8px;margin-bottom:8px;box-sizing:border-box">' +
+        '<p id="reset-error" style="display:none;color:#c0392b;font-size:13px;margin:0 0 8px"></p>' +
+        '<button id="reset-go" style="width:100%;padding:11px;border:0;border-radius:8px;background:#2d6a4f;color:#fff;font-size:15px;cursor:pointer">Save new password</button>' +
+        '</div>';
+      document.body.appendChild(overlay);
+      var err = function(m) { var el = document.getElementById('reset-error'); el.textContent = m; el.style.display = 'block'; };
+      document.getElementById('reset-go').addEventListener('click', async function() {
+        var pw = document.getElementById('reset-pw').value;
+        var pw2 = document.getElementById('reset-pw2').value;
+        if (pw.length < 8) { err('Password needs at least 8 characters.'); return; }
+        if (pw !== pw2) { err('The two passwords do not match.'); return; }
+        var res = await sb.auth.updateUser({ password: pw });
+        if (res.error) { err(res.error.message); return; }
+        document.body.removeChild(overlay);
+        await sb.auth.signOut();
+        showToast('Password updated. Sign in with your new password.');
+      });
+    }
+
     async function initAuth() {
       const { data: { session } } = await sb.auth.getSession();
       if (session) await handleSession(session);
       sb.auth.onAuthStateChange(async (_event, session) => {
+        if (_event === 'PASSWORD_RECOVERY') { showPasswordReset(); return; }
         if (session) { await handleSession(session); }
         else { currentUser = null; currentProfile = null; userRsvps = new Set(); resetMyData(); renderNavAuth(); renderLbSidebar(); renderDashboard(); renderSchedule(); loadLeaderboard(); loadActivityFeed(); }
       });
@@ -4666,6 +4697,16 @@ function closeAbout() {
     }
 
 
+    async function forgotPassword() {
+      const email = document.getElementById('auth-email').value.trim();
+      if (!email) { showAuthError('Enter your email above first, then tap Forgot password.'); return; }
+      if (!sb) { showAuthError('Connection error. Please refresh.'); return; }
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href.split('#')[0] });
+      if (error) { showAuthError(error.message); return; }
+      closeAuthModal();
+      showToast('Password reset email sent. Follow its link to set a new password.');
+    }
+
     function toggleBusinessFields(on) {
       var box = document.getElementById('signup-business-fields');
       if (box) box.style.display = on ? 'block' : 'none';
@@ -4686,7 +4727,7 @@ function closeAbout() {
       const businessUrl  = (document.getElementById('signup-business-url') || {}).value || '';
 
       if (!name || !username || !email || !pw) { showAuthError('Please fill in all fields.'); return; }
-      if (pw.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
+      if (pw.length < 8) { showAuthError('Password must be at least 8 characters.'); return; }
       if (isBusiness && !businessName.trim()) { showAuthError('Please enter your business name.'); return; }
 
       const meta = {

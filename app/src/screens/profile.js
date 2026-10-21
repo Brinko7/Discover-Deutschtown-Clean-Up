@@ -1,6 +1,6 @@
 import { ZONE_MASCOTS, zoneById, blockById, formatMinutes, ADOPTION_RULES } from '../data.js';
 import { getState, setProfileName, timeAgo, getRemote, refreshRemote, colorFor, resetAll } from '../store.js';
-import { deleteMyAccount } from '../backend.js';
+import { deleteMyAccount, signOutAccount, currentAccount } from '../backend.js';
 import { icon, esc, openSheet, closeSheet, toast } from '../ui.js';
 import { icons } from '../icons.js';
 import { tapHaptic, shareApp } from '../native.js';
@@ -196,6 +196,11 @@ export function renderProfile(root) {
             <span><b style="font-family:var(--font-display)">Privacy Policy</b></span>
             <span class="row-chevron">${icons.chevronRight}</span>
           </button>
+          <button class="list-row" id="row-signout">
+            <span class="row-icon">🚪</span>
+            <span><b style="font-family:var(--font-display)">Sign out</b><br><span style="font-size:12px;color:var(--warm-gray)">${esc(currentAccount()?.email || 'Signed in')}</span></span>
+            <span class="row-chevron">${icons.chevronRight}</span>
+          </button>
           <button class="list-row" id="row-delete">
             <span class="row-icon">🗑️</span>
             <span><b style="font-family:var(--font-display);color:#c0392b">Delete my data</b><br><span style="font-size:12px;color:var(--warm-gray)">Removes your account, check-ins and photos</span></span>
@@ -240,19 +245,25 @@ export function renderProfile(root) {
       <p class="sheet-sub">Effective October 20, 2026</p>
       <div class="card" style="margin-bottom:10px">
         <b style="font-family:var(--font-display)">What this app collects</b>
-        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Your profile name, check-in details (zone/block, time, bags, notes), RSVPs, adopted blocks, and any photos you attach to a check-in. If you allow it, we use your location just once, in the moment, to figure out which zone or block you're standing in. We never track your location in the background, and your coordinates are not stored.</p>
+        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Your account (username and email), profile name, check-in details (zone/block, time, bags, notes), RSVPs, adopted blocks, and any photos you attach to a check-in. If you allow it, we use your location just once, in the moment, to figure out which zone or block you're standing in. We never track your location in the background, and your coordinates are not stored.</p>
       </div>
       <div class="card" style="margin-bottom:10px">
         <b style="font-family:var(--font-display)">Where it's stored</b>
-        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Your data is kept on your phone and sent to a private database run for this project (hosted by Supabase) so the leaderboard and activity feed work. You are signed in as an anonymous guest, with no email or password. Photos are stored privately and only you can see them. Nothing is sold or used for ads.</p>
+        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Your data is kept on your phone and sent to a private database run for this project (hosted by Supabase) so the leaderboard and activity feed work. You sign in with an account (email and password), and your username and name are how neighbors see you. Photos are stored privately and only you can see them. Nothing is sold or used for ads.</p>
       </div>
       <div class="card">
         <b style="font-family:var(--font-display)">Your choices</b>
-        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Check in anonymously to hide your name from the activity feed and leaderboard. Use "Delete my data" below to remove your account, check-ins and photos from our servers and this phone. Uninstalling the app also removes your guest login, so that data can no longer be reached.</p>
+        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Check in anonymously to hide your name from the activity feed and leaderboard on a specific cleanup. Use "Delete my data" below to remove your account, check-ins and photos from our servers and this phone. Signing out stops syncing on this phone; your server history is still there when you sign back in.</p>
       </div>
       <p style="font-size:12px;color:var(--warm-gray);text-align:center;margin-top:14px">The full policy, including how the Mind Your Block website handles account data, is at <a href="https://brinko7.github.io/Discover-Deutschtown-Clean-Up/privacy-policy.html" target="_blank" rel="noopener" style="color:var(--green)">brinko7.github.io/Discover-Deutschtown-Clean-Up/privacy-policy.html</a>. Contact: zach.carman@gmail.com.</p>`);
   });
 
+  root.querySelector('#row-signout').addEventListener('click', async () => {
+    tapHaptic();
+    await signOutAccount();
+    await resetAll();
+    window.location.reload();
+  });
   root.querySelector('#row-delete').addEventListener('click', () => {
     tapHaptic();
     const wrap = openSheet(`
