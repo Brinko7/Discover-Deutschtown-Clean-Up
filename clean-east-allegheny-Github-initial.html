@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-10-19 21:18:06 -->
+<!-- VERSION: 2026-10-21 13:49:54 -->
 <!-- 
   SUPABASE SCHEMA ADDITIONS FOR BLOCKS:
   
@@ -3784,8 +3784,11 @@ function closeAbout() {
     const DONATIONS_ENABLED = false;
     if (!DONATIONS_ENABLED) document.documentElement.classList.add('no-donations');
 
-    const SUPABASE_URL      = 'https://tbaovavrxdlpkyexfazm.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRiYW92YXZyeGRscGt5ZXhmYXptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMzU4NjIsImV4cCI6MjA5NDcxMTg2Mn0.sQFtpP6pLFoPrJt6Z5HbyAfkAQ9bnIHlzNXOlkc6BFc';
+    // The only backend: Supabase project `mind-your-block`. The publishable key is safe to ship
+    // because row level security is on for every table (see supabase/migrations).
+    // Never put the secret key or the service_role key in this file.
+    const SUPABASE_URL      = 'https://qcdlqavkmnojftlysxxt.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_trVkqZ9c9I1jPNXMWaaFwQ_PpTuIsnv';
     let sb = null;
 
     // ── ADOPTION SYSTEM ──────────────────────────────────────────
@@ -4594,16 +4597,63 @@ function closeAbout() {
       if (session) await handleSession(session);
       sb.auth.onAuthStateChange(async (_event, session) => {
         if (session) { await handleSession(session); }
-        else { currentUser = null; currentProfile = null; userRsvps = new Set(); renderNavAuth(); renderLbSidebar(); renderDashboard(); renderSchedule(); loadLeaderboard(); loadActivityFeed(); }
+        else { currentUser = null; currentProfile = null; userRsvps = new Set(); resetMyData(); renderNavAuth(); renderLbSidebar(); renderDashboard(); renderSchedule(); loadLeaderboard(); loadActivityFeed(); }
       });
     }
 
 
+    // ── Your own data (check-ins, adoptions) and the totals derived from it ──
+    var _myCheckinRows = [];
+
+    function resetMyData() {
+      _myCheckinRows = [];
+      userAdoptions = [];
+      userZoneCheckins = {};
+      userBlockCheckins = {};
+    }
+
+    // Totals come from your own check-ins (row level security only returns yours).
+    function recomputeMyStats() {
+      if (!currentProfile) return;
+      var rows = _myCheckinRows;
+      currentProfile.points = rows.reduce(function(n, r) { return n + (r.points || 0); }, 0);
+      currentProfile.minutes_cleaned = rows.reduce(function(n, r) { return n + (r.minutes || 0); }, 0);
+      currentProfile.bags_collected = rows.reduce(function(n, r) { return n + Number(r.bags || 0); }, 0);
+      var evs = {}; rows.forEach(function(r) { if (r.event_id) evs[r.event_id] = 1; });
+      currentProfile.events_attended = Object.keys(evs).length;
+      // Streak: consecutive weeks with a named check-in, counting back from this week or last week.
+      var WEEK = 7 * 86400000;
+      var weekOf = function(t) { var d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getTime(); };
+      var weeks = {}; rows.forEach(function(r) { if (!r.anonymous) weeks[weekOf(r.created_at)] = 1; });
+      var thisWeek = weekOf(Date.now()), w = weeks[thisWeek] ? thisWeek : thisWeek - WEEK, n = 0;
+      while (weeks[w]) { n++; w -= WEEK; }
+      currentProfile.streak_weeks = n;
+    }
+
+    async function loadMyData() {
+      resetMyData();
+      if (!sb || !currentUser) return;
+      try {
+        var ci = await sb.from('checkins').select('created_at,minutes,bags,points,event_id,zone_ids,block_ids,anonymous');
+        _myCheckinRows = ci.data || [];
+        _myCheckinRows.forEach(function(r) {
+          (r.zone_ids || []).forEach(function(z) { userZoneCheckins[z] = (userZoneCheckins[z] || 0) + 1; });
+          (r.block_ids || []).forEach(function(b) { userBlockCheckins[b] = (userBlockCheckins[b] || 0) + 1; });
+        });
+        var ad = await sb.from('adoptions').select('block_id,zone_id,adopted_at').eq('user_id', currentUser.id);
+        userAdoptions = (ad.data || []).map(function(a) {
+          return { id: 'adopt_' + a.block_id + '_' + currentUser.id, blockId: a.block_id, zoneId: a.zone_id, adoptedAt: a.adopted_at, streak: 0, lastCheckin: null };
+        });
+      } catch (e) { console.warn('Could not load your data:', e); }
+      recomputeMyStats();
+    }
+
     async function handleSession(session) {
       currentUser = session.user;
       const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
-      currentProfile = data;
+      currentProfile = data || { id: currentUser.id, full_name: '', username: '' };
       await loadUserRsvps();
+      await loadMyData();
       renderNavAuth();
       renderLbSidebar();
       renderSchedule();
@@ -4678,57 +4728,11 @@ function closeAbout() {
     document.addEventListener('click', () => closeNavDropdown());
 
 
-    // ── LOCAL TEST ACCOUNT (demo only — remove for production) ──
-    // Lets you sign in and explore the logged-in experience without a live
-    // Supabase account. Works whether or not the backend is connected.
-    const TEST_ACCOUNT = {
-      email: 'zach.carman@gmail.com',
-      password: 'password',
-      user: { id: 'test-zach', email: 'zach.carman@gmail.com' },
-      profile: {
-        id: 'test-zach',
-        full_name: 'Zach Carman',
-        username: 'zach_carman',
-        avatar_url: null,
-        points: 260,
-        minutes_cleaned: 145,
-        bags_collected: 12,
-        events_attended: 6,
-        streak_weeks: 3,
-        neighborhood: 'Deutschtown',
-        zone: 'Business District',
-        account_type: 'resident'
-      }
-    };
-
-    function mockLogin() {
-      currentUser = { ...TEST_ACCOUNT.user };
-      currentProfile = { ...TEST_ACCOUNT.profile };
-      userRsvps = new Set();
-      // Seed some history so badges/adopt features have data to show
-      userZoneCheckins  = { z3: 4, z1: 2, z6: 1 };  // unlocks 3 zone mascots
-      userBlockCheckins = { b2_1: 2 };
-      closeAuthModal();
-      renderNavAuth();
-      renderLbSidebar();
-      renderSchedule();
-      renderDashboard();
-      try { loadActivityFeed(); } catch (e) {}
-      setTimeout(function () { try { switchSchedTab('my'); } catch (e) {} }, 100);
-      showToast('Welcome back, Zach! 🌿 (test account)');
-    }
-
     async function signIn() {
       const email = document.getElementById('auth-email').value.trim();
       const pw    = document.getElementById('auth-password').value;
       const btn   = document.getElementById('signin-btn');
       if (!email || !pw) { showAuthError('Please enter your email and password.'); return; }
-
-      // Local test account — works with or without Supabase
-      if (email.toLowerCase() === TEST_ACCOUNT.email && pw === TEST_ACCOUNT.password) {
-        mockLogin();
-        return;
-      }
 
       if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
       if (!sb) { showAuthError('Connection error. Please refresh.'); if (btn) { btn.disabled=false; btn.textContent='Sign In'; } return; }
@@ -4906,12 +4910,20 @@ function closeAbout() {
       let leaders = [];
       if (!sb) { renderLeaderboard([]); return; }
       try {
-        const { data, error } = await sb.from('profiles')
-          .select('id,username,full_name,avatar_url,points,bags_collected,events_attended,streak_weeks,neighborhood')
-          .order('points', { ascending: false })
-          .limit(11);
-        // Show mock data if fewer than 3 real users to make the leaderboard feel populated
-        leaders = (data && data.length >= 3) ? data : MOCK_LEADERS;
+        // Signed-in users get the real leaderboard from the database function.
+        // Guests (not signed in) cannot call it, so they see the example data.
+        const { data } = await sb.rpc('get_leaderboard', { max_rows: 11 });
+        const real = (data || []).map(function(r) {
+          return {
+            id: r.is_you && currentUser ? currentUser.id : 'lb-' + r.rank,
+            username: r.username, full_name: r.full_name, avatar_url: r.avatar_url,
+            points: Number(r.points), bags_collected: Number(r.bags_collected),
+            events_attended: Number(r.events_attended), streak_weeks: r.streak_weeks,
+            neighborhood: r.neighborhood
+          };
+        });
+        // Show example data if fewer than 3 real users to make the leaderboard feel populated
+        leaders = real.length >= 3 ? real : MOCK_LEADERS;
       } catch(e) {
         leaders = MOCK_LEADERS;
       }
@@ -6742,7 +6754,16 @@ function saveZonePolygon() {
       const b = BLOCKS.find(function(x) { return x.id === blockId; });
       if (!b || !currentUser) return;
       const adoption = { id: 'adopt_' + blockId + '_' + currentUser.id, blockId, zoneId, adoptedAt: new Date().toISOString(), streak: 0, lastCheckin: null };
-      if (sb && currentUser) { try { await sb.from('adoptions').insert({ user_id: currentUser.id, block_id: blockId, zone_id: zoneId }); } catch(e) {} }
+      if (sb && currentUser) {
+        try {
+          const { error: adoptErr } = await sb.from('adoptions').insert({ user_id: currentUser.id, block_id: blockId, zone_id: zoneId });
+          if (adoptErr) {
+            closeAdoptModal();
+            showToast(adoptErr.code === '23505' ? 'Someone already adopted this block. Pick another one!' : 'Could not save your adoption. Try again.');
+            return;
+          }
+        } catch(e) { closeAdoptModal(); showToast('Could not save your adoption. Try again.'); return; }
+      }
       userAdoptions.push(adoption);
       b.adoptedBy = currentProfile ? (currentProfile.full_name || currentProfile.username) : 'You';
       closeAdoptModal();
@@ -7357,11 +7378,19 @@ function saveZonePolygon() {
         try {
           const ciRow = {
             user_id: currentUser.id, zone_ids: zoneIds, block_ids: blockIds,
-            bags_collected: bags, minutes_cleaned: elapsedMin, duration_min: elapsedMin,
-            points: pts, notes: notes, anonymous: anon
+            block_names: blockIds.map(function(bid) { var b = BLOCKS.find(function(x) { return x.id === bid; }); return b ? b.name : bid; }),
+            bags: bags, minutes: Math.min(Math.max(Math.round(elapsedMin), 0), 1440),
+            points: Math.round(pts), notes: (notes || '').slice(0, 1000), anonymous: anon
           };
-          if (evCtx) { ciRow.event_id = evCtx.eventId; ciRow.verified = true; ciRow.lat = evCtx.lat; ciRow.lng = evCtx.lng; }
-          if (sb) await sb.from('checkins').insert(ciRow);
+          if (evCtx) { ciRow.event_id = evCtx.eventId; ciRow.verified = true; }
+          if (sb) {
+            const { error: ciErr } = await sb.from('checkins').insert(ciRow);
+            if (ciErr) throw ciErr;
+            _myCheckinRows.push({ created_at: new Date().toISOString(), minutes: ciRow.minutes, bags: ciRow.bags, points: ciRow.points,
+              event_id: ciRow.event_id || null, zone_ids: zoneIds, block_ids: blockIds, anonymous: anon });
+            recomputeMyStats();
+            renderDashboard();
+          }
         } catch(e) { console.warn('Checkin save error:', e); }
         setTimeout(loadLeaderboard, 500);
       }
