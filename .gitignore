@@ -1,0 +1,4 @@
+# Local-only files, never commit (GitHub Pages publishes the whole repo)
+Merlin x Claude*.md
+.mcp.json
+.DS_Store
