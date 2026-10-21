@@ -49,24 +49,35 @@ export function currentUserId() {
 }
 
 // Returns the user id, signing in as a new guest the first time. Null when offline.
-export async function ensureSession() {
-  if (userId) return userId;
-  try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (session) {
-      userId = session.user.id;
-      return userId;
-    }
-    const { data, error } = await supabase.auth.signInAnonymously();
-    if (error) throw error;
-    userId = data.user.id;
-    return userId;
-  } catch (e) {
-    console.warn('Not signed in yet (offline?). Will retry.', e);
-    return null;
+// Several requests start at once when the app opens. They must all wait for ONE sign-in,
+// otherwise each one creates its own guest account and the data gets split across accounts.
+let signingIn = null;
+
+export function ensureSession() {
+  if (userId) return Promise.resolve(userId);
+  if (!signingIn) {
+    signingIn = (async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session) {
+          userId = session.user.id;
+          return userId;
+        }
+        const { data, error } = await supabase.auth.signInAnonymously();
+        if (error) throw error;
+        userId = data.user.id;
+        return userId;
+      } catch (e) {
+        console.warn('Not signed in yet (offline?). Will retry.', e);
+        return null;
+      } finally {
+        signingIn = null;
+      }
+    })();
   }
+  return signingIn;
 }
 
 // ── Writes (called from the outbox) ──────────────────────────

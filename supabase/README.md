@@ -14,7 +14,9 @@ Only the **publishable** key belongs in the repo (`app/src/config.js`). It is sa
   (`full_name`, `username`, `neighborhood`, `zone`, `avatar_url`, account type), event links on check-ins, the `events`,
   `event_draws` and `feedback` tables, the public `avatars` bucket, and a richer leaderboard.
 
-- `migrations/20261021020000_real_data_views.sql`: public aggregate functions that replace the demo content (`get_events`, `get_zone_activity`, `get_community_stats`, host-only `get_event_attendees`). **Written, not applied yet.** The apps fall back to empty states until it is applied.
+- `migrations/20261021020000_real_data_views.sql`: public aggregate functions that replace the demo content (`get_events`, `get_zone_activity`, `get_community_stats`, host-only `get_event_attendees`). **Applied and verified Oct 21.**
+
+- `migrations/20261021030000_admin_moderation.sql`: private `admin` schema with `admin.user_overview`, `admin.ban_user`, `admin.unban_user`; banned accounts are hidden from the leaderboard and feed. **Applied and verified Oct 21.** See `ADMIN.md`.
 
 Run the files in order. All are safe to re-run.
 
