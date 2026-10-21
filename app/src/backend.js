@@ -160,6 +160,18 @@ export async function fetchFeed(limit = 30) {
   return error ? null : data;
 }
 
+export async function fetchEvents() {
+  if (!(await ensureSession())) return null;
+  const { data, error } = await supabase.rpc('get_events');
+  return error ? null : data;
+}
+
+export async function fetchZoneActivity() {
+  if (!(await ensureSession())) return null;
+  const { data, error } = await supabase.rpc('get_zone_activity');
+  return error ? null : data;
+}
+
 // ── Delete everything (required for apps that create accounts) ──
 
 export async function deleteMyAccount() {

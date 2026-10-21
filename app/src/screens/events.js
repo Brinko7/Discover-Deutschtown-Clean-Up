@@ -1,11 +1,16 @@
-import { SCHEDULE, PAST_EVENTS, zoneById, getHotSpot } from '../data.js';
-import { getState, toggleRsvp } from '../store.js';
+import { zoneById, getHotSpot } from '../data.js';
+import { getState, toggleRsvp, getEventLists, refreshRemote } from '../store.js';
 import { icon, esc, openSheet, closeSheet, toast } from '../ui.js';
 import { icons } from '../icons.js';
 import { tapHaptic, successHaptic, shareApp } from '../native.js';
 import { navigate } from '../main.js';
 
 let activeSeg = 'upcoming';
+
+function spotsLabel(ev) {
+  if (ev.spotsLeft == null) return ev.going ? `${ev.going} going` : 'Open to everyone';
+  return ev.spotsLeft === 0 ? 'Full' : `${ev.spotsLeft} spot${ev.spotsLeft === 1 ? '' : 's'} left`;
+}
 
 function eventCard(ev, rsvped) {
   return `
@@ -16,14 +21,13 @@ function eventCard(ev, rsvped) {
           <div class="ed-day">${ev.day}</div>
         </div>
         <div class="event-info">
-          <div class="event-name">${esc(ev.zone)}</div>
+          <div class="event-name">${esc(ev.name)}</div>
           <div class="event-meta">
-            <span>🕘 ${ev.time} · ${ev.duration}</span>
-            <span>👥 ${ev.spots} spots</span>
+            <span>🕘 ${esc(ev.time)}${ev.duration ? ' · ' + esc(ev.duration) : ''}</span>
+            <span>👥 ${esc(spotsLabel(ev))}</span>
           </div>
           <div style="margin-top:7px;display:flex;gap:6px;flex-wrap:wrap">
             ${ev.sponsored ? '<span class="badge badge--sponsored">⭐ Sponsored</span>' : ''}
-            ${ev.recurring ? '<span class="badge badge--rsvp">🔁 Weekly</span>' : ''}
             ${rsvped ? '<span class="badge badge--rsvp">✓ Going</span>' : ''}
           </div>
         </div>
@@ -41,15 +45,18 @@ function pastCard(ev) {
           <div class="ed-day">${ev.day}</div>
         </div>
         <div class="event-info">
-          <div class="event-name">${esc(ev.zone)}</div>
+          <div class="event-name">${esc(ev.name)}</div>
           <div class="event-meta">
-            <span>👥 ${ev.volunteers} volunteers</span>
-            <span>🗑️ ${ev.bags} bags</span>
-            <span>🕘 ${ev.duration}</span>
+            <span>👥 ${ev.volunteers} volunteer${ev.volunteers === 1 ? '' : 's'}</span>
+            <span>🗑️ ${ev.bags % 1 ? ev.bags.toFixed(1) : ev.bags} bags</span>
           </div>
         </div>
       </div>
     </div>`;
+}
+
+function emptyState(emoji, html) {
+  return `<div class="empty-state"><div class="empty-emoji">${emoji}</div><p>${html}</p></div>`;
 }
 
 function openEventSheet(ev) {
@@ -57,31 +64,40 @@ function openEventSheet(ev) {
   const rsvped = s.rsvps.includes(ev.id);
   const zone = ev.zoneId ? zoneById(ev.zoneId) : null;
   const hot = ev.zoneId ? getHotSpot(ev.zoneId) : null;
+  const rows = [];
+  if (ev.meeting) {
+    rows.push(`
+      <div class="list-row" style="cursor:default">
+        <span class="row-icon">${icons.location}</span>
+        <span><b style="font-family:var(--font-display);font-size:13.5px">Meeting point</b><br><span style="font-size:13px;color:var(--warm-gray)">${esc(ev.meeting)}</span></span>
+      </div>`);
+  }
+  if (ev.supplies) {
+    rows.push(`
+      <div class="list-row" style="cursor:default">
+        <span class="row-icon">${icons.gift}</span>
+        <span><b style="font-family:var(--font-display);font-size:13.5px">Supplies provided</b><br><span style="font-size:13px;color:var(--warm-gray)">${esc(ev.supplies)}</span></span>
+      </div>`);
+  }
+  rows.push(`
+      <div class="list-row" style="cursor:default">
+        <span class="row-icon">${icons.users}</span>
+        <span><b style="font-family:var(--font-display);font-size:13.5px">${esc(spotsLabel(ev))}</b>${ev.going ? `<br><span style="font-size:13px;color:var(--warm-gray)">${ev.going} going so far</span>` : ''}${hot ? `<br><span style="font-size:13px;color:var(--amber)">🔥 This zone pays ${hot.short} right now</span>` : ''}</span>
+      </div>`);
 
   const wrap = openSheet(`
-    <h2 class="sheet-title">${esc(ev.zone)}</h2>
-    <p class="sheet-sub">${ev.month} ${ev.day} · ${ev.time} · ${ev.duration}${ev.recurring ? ' · repeats weekly' : ''}</p>
+    <h2 class="sheet-title">${esc(ev.name)}</h2>
+    <p class="sheet-sub">${ev.month} ${ev.day} · ${esc(ev.time)}${ev.duration ? ' · ' + esc(ev.duration) : ''}${zone ? ' · ' + esc(zone.name) : ''}</p>
 
     ${ev.sponsored ? `
       <div class="card" style="background:#fff7f2;border-color:#ffd9c2;margin-bottom:12px">
         <b style="font-family:var(--font-display)">⭐ Sponsored by ${esc(ev.organizer)}</b>
-        <p style="font-size:13px;color:var(--warm-gray);margin-top:4px">${esc(ev.prize)}</p>
-      </div>` : ''}
+        ${ev.prize ? `<p style="font-size:13px;color:var(--warm-gray);margin-top:4px">${esc(ev.prize)}</p>` : ''}
+      </div>` : `<p style="font-size:13px;color:var(--warm-gray);margin:0 0 12px">Hosted by ${esc(ev.organizer)}</p>`}
 
-    <div class="card" style="padding:4px 16px;margin-bottom:12px">
-      <div class="list-row" style="cursor:default">
-        <span class="row-icon">${icons.location}</span>
-        <span><b style="font-family:var(--font-display);font-size:13.5px">Meeting point</b><br><span style="font-size:13px;color:var(--warm-gray)">${esc(ev.meeting)}</span></span>
-      </div>
-      <div class="list-row" style="cursor:default">
-        <span class="row-icon">${icons.gift}</span>
-        <span><b style="font-family:var(--font-display);font-size:13.5px">Supplies provided</b><br><span style="font-size:13px;color:var(--warm-gray)">${esc(ev.supplies)}</span></span>
-      </div>
-      <div class="list-row" style="cursor:default">
-        <span class="row-icon">${icons.users}</span>
-        <span><b style="font-family:var(--font-display);font-size:13.5px">${ev.spots} volunteer spots</b>${hot ? `<br><span style="font-size:13px;color:var(--amber)">🔥 This zone pays ${hot.short} right now</span>` : ''}</span>
-      </div>
-    </div>
+    ${ev.description ? `<p style="font-size:14px;line-height:1.5;margin:0 0 12px">${esc(ev.description)}</p>` : ''}
+
+    <div class="card" style="padding:4px 16px;margin-bottom:12px">${rows.join('')}</div>
 
     <button class="btn ${rsvped ? 'btn--secondary' : 'btn--primary'} btn--block" id="ev-rsvp">
       ${rsvped ? '✓ You\'re going — tap to cancel' : 'Count me in'}
@@ -111,25 +127,32 @@ function openEventSheet(ev) {
   });
   wrap.querySelector('#ev-share').addEventListener('click', async () => {
     tapHaptic();
-    const res = await shareApp(`Join me at the ${ev.zone} cleanup on ${ev.month} ${ev.day} at ${ev.time} — meet at ${ev.meeting}.`);
+    const where = ev.meeting ? ` — meet at ${ev.meeting}` : '';
+    const res = await shareApp(`Join me at ${ev.name} on ${ev.month} ${ev.day} at ${ev.time}${where}.`);
     if (res === 'copied') toast('Event details copied', { emoji: '🔗' });
   });
 }
 
 export function renderEvents(root) {
+  refreshRemote();
   const s = getState();
+  const { upcoming, past } = getEventLists();
 
   const paint = () => {
     let listHtml = '';
     if (activeSeg === 'upcoming') {
-      listHtml = SCHEDULE.map((ev) => eventCard(ev, s.rsvps.includes(ev.id))).join('');
+      listHtml = upcoming.length
+        ? upcoming.map((ev) => eventCard(ev, s.rsvps.includes(ev.id))).join('')
+        : emptyState('🗓️', 'No group cleanups are scheduled yet.<br>New events show up here as soon as they are approved.<br>You can still check in on your own any time.');
     } else if (activeSeg === 'mine') {
-      const mine = SCHEDULE.filter((ev) => s.rsvps.includes(ev.id));
+      const mine = upcoming.filter((ev) => s.rsvps.includes(ev.id));
       listHtml = mine.length
         ? mine.map((ev) => eventCard(ev, true)).join('')
-        : `<div class="empty-state"><div class="empty-emoji">🗓️</div><p>No RSVPs yet.<br>Tap an event and hit "Count me in".</p></div>`;
+        : emptyState('🗓️', 'No RSVPs yet.<br>Tap an event and hit "Count me in".');
     } else {
-      listHtml = PAST_EVENTS.map(pastCard).join('');
+      listHtml = past.length
+        ? past.map(pastCard).join('')
+        : emptyState('📜', 'No past events yet.');
     }
 
     root.innerHTML = `
@@ -137,7 +160,7 @@ export function renderEvents(root) {
         <header class="screen-header">
           <div>
             <h1 class="screen-title">Events</h1>
-            <p class="screen-subtitle">Group cleanups — supplies provided</p>
+            <p class="screen-subtitle">Group cleanups with neighbors</p>
           </div>
         </header>
         <div class="segmented">
@@ -158,7 +181,7 @@ export function renderEvents(root) {
     root.querySelectorAll('[data-event]').forEach((el) => {
       el.addEventListener('click', () => {
         tapHaptic();
-        const ev = SCHEDULE.find((e) => e.id === el.dataset.event);
+        const ev = upcoming.find((e) => e.id === el.dataset.event);
         if (ev) openEventSheet(ev);
       });
     });

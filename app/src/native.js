@@ -6,6 +6,7 @@ import { Geolocation } from '@capacitor/geolocation';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { Share } from '@capacitor/share';
 import { ZONE_POLYGONS, BLOCKS, ZONES } from './data.js';
+import { SHARE_URL } from './config.js';
 
 export const isNative = Capacitor.isNativePlatform();
 
@@ -162,7 +163,7 @@ export async function shareApp(text) {
   const payload = {
     title: 'Mind Your Block',
     text: text || 'Join me keeping Deutschtown clean — check in, earn points, adopt a block!',
-    url: 'https://mindyourblock.org',
+    url: SHARE_URL,
   };
   try {
     if (isNative || navigator.share) {

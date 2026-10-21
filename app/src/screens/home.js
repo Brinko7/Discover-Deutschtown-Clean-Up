@@ -37,7 +37,11 @@ function hotZoneCards() {
 }
 
 function feedHtml() {
-  return activityFeed()
+  const items = activityFeed();
+  if (!items.length) {
+    return `<div class="empty-state" style="padding:18px 8px"><div class="empty-emoji">🧹</div><p>No cleanups logged yet.<br>Be the first to check in.</p></div>`;
+  }
+  return items
     .slice(0, 6)
     .map((a) => {
       const what = a.type === 'adopt'

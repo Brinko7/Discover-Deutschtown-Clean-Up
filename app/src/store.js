@@ -5,11 +5,11 @@
 // The phone is the source of truth for your own history, so the app works fully offline.
 // Changes are also queued in an outbox and sent to Supabase (see backend.js) when there is a connection.
 import { Preferences } from '@capacitor/preferences';
-import { ACTIVITY_FEED_SEED, zoneById } from './data.js';
+import { zoneById, normalizeEvent, setZoneMeta } from './data.js';
 import {
   DONE, RETRY,
   ensureSession, sendProfileName, sendCheckin, sendRsvp, sendAdoption,
-  fetchLeaderboard, fetchFeed,
+  fetchLeaderboard, fetchFeed, fetchEvents, fetchZoneActivity,
 } from './backend.js';
 
 const KEY = 'myb_state_v1';
@@ -32,13 +32,14 @@ const defaults = () => ({
   mascots: [], // unlocked zoneIds
   activity: [], // user-generated activity entries, newest first
   outbox: [], // changes waiting to be sent: { t: 'profile'|'checkin'|'rsvp'|'adopt', ... }
+  cache: { events: [], zones: [] }, // last events and zone activity from the server, so those screens work offline
 });
 
 let state = defaults();
 const listeners = new Set();
 
 // Shared data from the server (leaderboard, activity feed). Null until the first successful fetch.
-const remote = { leaders: null, feed: null, at: 0 };
+const remote = { leaders: null, feed: null, events: null, zones: null, at: 0 };
 const remoteListeners = new Set();
 
 // Check-in ids are UUIDs so the server can ignore a repeated send.
@@ -57,6 +58,10 @@ export async function initStore() {
   } catch (e) {
     console.warn('Failed to load saved state, starting fresh', e);
   }
+  // Show the last known events and zone status right away, before the network answers.
+  remote.events = state.cache?.events || [];
+  remote.zones = state.cache?.zones || [];
+  setZoneMeta(remote.zones, remote.events);
   // Sync in the background, never block the app on the network.
   window.addEventListener('online', () => syncNow());
   syncNow();
@@ -151,10 +156,20 @@ export function subscribeRemote(fn) {
 export async function refreshRemote(force = false) {
   if (!force && Date.now() - remote.at < 30000) return;
   remote.at = Date.now();
-  const [leaders, feed] = await Promise.all([fetchLeaderboard(20), fetchFeed(30)]);
+  const [leaders, feed, events, zones] = await Promise.all([
+    fetchLeaderboard(20), fetchFeed(30), fetchEvents(), fetchZoneActivity(),
+  ]);
   if (leaders) remote.leaders = leaders;
   if (feed) remote.feed = feed;
-  if (leaders || feed) remoteListeners.forEach((fn) => fn(remote));
+  if (events) remote.events = events;
+  if (zones) remote.zones = zones;
+  if (events || zones) {
+    setZoneMeta(remote.zones || [], remote.events || []);
+    update((s) => {
+      s.cache = { events: remote.events || [], zones: remote.zones || [] };
+    });
+  }
+  if (leaders || feed || events || zones) remoteListeners.forEach((fn) => fn(remote));
 }
 
 // Call on start, when the connection returns, and when the app comes back to the foreground.
@@ -176,7 +191,10 @@ export async function resetAll() {
   state = defaults();
   remote.leaders = null;
   remote.feed = null;
+  remote.events = null;
+  remote.zones = null;
   remote.at = 0;
+  setZoneMeta([], []);
 }
 
 // ── State changes ────────────────────────────────────────────
@@ -272,34 +290,33 @@ export function colorFor(name) {
   return FEED_COLORS[h % FEED_COLORS.length];
 }
 
-// Live feed. Once the server has a few real entries, show those (plus anything of yours not sent yet).
-// Until then, your own activity followed by the demo seed so the feed never looks empty.
+// Events from the server, split into what is coming up and what already happened.
+export function getEventLists() {
+  const all = (remote.events || []).map(normalizeEvent);
+  return {
+    upcoming: all.filter((e) => !e.isPast).sort((a, b) => a.date - b.date),
+    past: all.filter((e) => e.isPast).sort((a, b) => b.date - a.date),
+  };
+}
+
+// Live feed: real check-ins from the server, plus any of yours that are still waiting to be sent.
 export function activityFeed() {
-  if (remote.feed && remote.feed.length >= 3) {
-    const sent = new Set(remote.feed.map((f) => f.id));
-    const real = remote.feed.map((f) => ({
-      id: f.id,
-      type: 'checkin',
-      name: f.display_name,
-      anonymous: f.display_name === 'Anonymous',
-      isYou: f.is_you,
-      zoneId: f.zone_id,
-      zoneName: zoneById(f.zone_id)?.name || '',
-      blockName: f.block_name,
-      bags: Number(f.bags) || 0,
-      ts: new Date(f.created_at).getTime(),
-      color: colorFor(f.display_name),
-    }));
-    const unsent = state.activity.filter((a) => !sent.has(a.id.replace(/^u_/, '')));
-    return [...unsent, ...real].sort((a, b) => b.ts - a.ts);
-  }
-  const now = Date.now();
-  const seed = ACTIVITY_FEED_SEED.map((a) => ({
-    ...a,
-    zoneName: zoneById(a.zoneId)?.name || '',
-    ts: now - a.minsAgo * 60000,
+  const real = (remote.feed || []).map((f) => ({
+    id: f.id,
+    type: 'checkin',
+    name: f.display_name,
+    anonymous: f.display_name === 'Anonymous',
+    isYou: f.is_you,
+    zoneId: f.zone_id,
+    zoneName: zoneById(f.zone_id)?.name || '',
+    blockName: f.block_name,
+    bags: Number(f.bags) || 0,
+    ts: new Date(f.created_at).getTime(),
+    color: colorFor(f.display_name),
   }));
-  return [...state.activity, ...seed].sort((a, b) => b.ts - a.ts);
+  const sent = new Set(real.map((r) => r.id));
+  const unsent = state.activity.filter((a) => !sent.has(a.id.replace(/^u_/, '')));
+  return [...unsent, ...real].sort((a, b) => b.ts - a.ts);
 }
 
 export function timeAgo(ts) {

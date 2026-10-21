@@ -1,6 +1,6 @@
 // ============================================================
-// Seed data ported from the web version (clean-east-allegheny).
-// When Supabase is wired up, these become fallbacks / cache seeds.
+// Static reference data: zones, blocks, scoring rules, mascots.
+// Everything that changes (events, leaderboard, zone status, activity) comes from the server, see store.js.
 // ============================================================
 
 export const MAP_CENTER = [40.4535, -80.0030];
@@ -151,28 +151,12 @@ export const BLOCKS = [
   { id:'b_z9_7', zoneId:'z9', name:'Expressway', polygon:[[40.45489,-79.99430],[40.45458,-79.99405],[40.45576,-79.99205],[40.45609,-79.99112],[40.45638,-79.99128],[40.45577,-79.99277]] },
 ];
 
-// Demo dates are generated relative to today so the data never goes stale.
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
-const addDays = (n) => { const d = startOfToday(); d.setDate(d.getDate() + n); return d; };
-const isoDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-// The nth upcoming Saturday (n=1 is the first one at least two days out).
-const upcomingSaturday = (n) => {
-  const d = addDays(2);
-  d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7) + (n - 1) * 7);
-  return d;
-};
-// The nth most recent Saturday before today (n=1 is the latest one).
-const pastSaturday = (n) => {
-  const d = addDays(-1);
-  d.setDate(d.getDate() - ((d.getDay() + 1) % 7) - (n - 1) * 7);
-  return d;
-};
-const labelParts = (d) => ({ month: MONTHS[d.getMonth()].toUpperCase(), day: String(d.getDate()), date: isoDate(d) });
+// ── Zone status and events: filled from real data ───────────
 
-const ZONE_DAYS_SINCE = { z1: 5, z2: 19, z3: 40, z4: 59, z5: 0, z6: 22, z7: 10, z8: null, z9: null };
-
-export const ZONE_META = {};
+// Every zone starts as "never cleaned" until a real check-in says otherwise.
+export const ZONE_META = Object.fromEntries(
+  ZONES.map((z) => [z.id, { lastCleanup: null, daysSince: 999, nextEvent: { date: 'TBD', time: '' } }]),
+);
 
 export const STATUS_STYLE = {
   clean: { color: '#2ed573', label: 'Recently cleaned' },
@@ -182,43 +166,80 @@ export const STATUS_STYLE = {
 
 export function getZoneStatus(zoneId) {
   const meta = ZONE_META[zoneId];
-  if (!meta) return 'clean';
+  if (!meta) return 'attention';
   if (meta.daysSince <= 10) return 'clean';
   if (meta.daysSince <= 30) return 'overdue';
   return 'attention';
 }
 
-const SCHEDULE_RAW = [
-  { id: 's1', when: upcomingSaturday(1), zone: 'South Allegheny Park', zoneId: 'z1', time: '9:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags & Gloves', meeting: 'Corner of Spring Way & Cedar Ave' },
-  { id: 's6', when: addDays(4), zone: 'Clean the ACB Block', zoneId: 'z3', time: '12:00 PM', duration: '3 hrs', spots: 25, supplies: 'Bags, Gloves & Grabbers', meeting: 'Allegheny City Brewing, 507 Foreland St', sponsored: true, organizer: 'Allegheny City Brewing', sponsorUrl: 'https://alleghenycitybrewing.com', rewardType: 'both', prize: '$50 ACB gift card raffle + a free pint for the top cleaner', rafflePrize: '$50 ACB gift card', topPrize: 'A free pint' },
-  { id: 's2', when: upcomingSaturday(2), zone: 'Allegheny Commons', zoneId: 'z1', time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags, Gloves & Grabbers', meeting: 'Commons main entrance on Arch St' },
-  { id: 's3', when: upcomingSaturday(3), zone: 'Allegheny Center Park', zoneId: 'z3', time: '9:00 AM', duration: '3 hrs', spots: 20, supplies: 'Bags, Gloves & Vests', meeting: 'East St park entry, near the fountain' },
-  { id: 's4', when: upcomingSaturday(4), zone: 'Dunloe and Knoll', zoneId: 'z7', time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags & Gloves', meeting: 'Dunloe Ave & Knoll St intersection' },
-  { id: 's5', when: upcomingSaturday(5), zone: 'Park Fountain', zoneId: 'z4', time: '9:00 AM', duration: '2 hrs', spots: 15, supplies: 'Bags, Gloves & Vests', meeting: 'Park Fountain main entrance on North Ave', recurring: 'weekly' },
-];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const startOfToday = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
 
-export const SCHEDULE = SCHEDULE_RAW
-  .map(({ when, ...ev }) => ({ ...ev, ...labelParts(when) }))
-  .sort((x, y) => x.date.localeCompare(y.date));
+// '09:00:00' -> '9:00 AM'
+export function formatEventTime(t) {
+  if (!t) return 'Time to be announced';
+  const [h, m] = t.split(':').map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+}
 
-const PAST_RAW = [
-  { id: 'p1', when: pastSaturday(2), zone: 'South Allegheny Park', time: '9:00 AM', duration: '2 hrs', volunteers: 14, bags: 22 },
-  { id: 'p2', when: pastSaturday(4), zone: 'Allegheny Commons', time: '10:00 AM', duration: '2 hrs', volunteers: 9, bags: 15 },
-  { id: 'p3', when: pastSaturday(8), zone: 'Allegheny Center Park', time: '8:00 AM', duration: '3 hrs', volunteers: 21, bags: 38 },
-  { id: 'p4', when: pastSaturday(10), zone: 'Park Fountain', time: '11:00 AM', duration: '2 hrs', volunteers: 7, bags: 11 },
-];
-
-export const PAST_EVENTS = PAST_RAW.map(({ when, ...ev }) => ({ ...ev, ...labelParts(when) }));
-
-for (const [zoneId, ago] of Object.entries(ZONE_DAYS_SINCE)) {
-  const next = SCHEDULE.find((ev) => ev.zoneId === zoneId);
-  ZONE_META[zoneId] = {
-    lastCleanup: ago === null ? null : isoDate(addDays(-ago)),
-    daysSince: ago === null ? 999 : ago,
-    nextEvent: next
-      ? { date: `${next.month[0]}${next.month.slice(1).toLowerCase()} ${next.day}`, time: next.time }
-      : { date: 'TBD', time: '' },
+// One row from the server's get_events() in the shape the screens use.
+export function normalizeEvent(r) {
+  const [y, m, d] = String(r.event_date).split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const spots = r.spots == null ? null : Number(r.spots);
+  const going = Number(r.going) || 0;
+  return {
+    id: r.id,
+    name: r.name,
+    organizer: r.organizer,
+    zoneId: r.zone_id || null,
+    zoneName: r.zone_id ? zoneById(r.zone_id)?.name || '' : '',
+    date,
+    month: MONTHS[date.getMonth()].toUpperCase(),
+    monthTitle: MONTHS[date.getMonth()],
+    day: String(date.getDate()),
+    time: formatEventTime(r.start_time),
+    duration: r.duration || '',
+    meeting: r.meeting_point || '',
+    supplies: r.supplies || '',
+    description: r.description || '',
+    spots,
+    going,
+    spotsLeft: spots == null ? null : Math.max(spots - going, 0),
+    sponsored: !!r.sponsored,
+    sponsorUrl: r.sponsor_url || '',
+    rewardType: r.reward_type || null,
+    prize: r.prize || '',
+    volunteers: Number(r.volunteers) || 0,
+    bags: Number(r.bags) || 0,
+    isPast: date < startOfToday(),
   };
+}
+
+// Rebuilds each zone's status from the server's zone activity and approved events.
+export function setZoneMeta(activity = [], events = []) {
+  ZONES.forEach((z) => {
+    ZONE_META[z.id] = { lastCleanup: null, daysSince: 999, nextEvent: { date: 'TBD', time: '' } };
+  });
+  const now = Date.now();
+  activity.forEach((a) => {
+    const meta = ZONE_META[a.zone_id];
+    if (!meta || !a.last_cleanup) return;
+    meta.lastCleanup = a.last_cleanup;
+    meta.daysSince = Math.max(0, Math.floor((now - new Date(a.last_cleanup).getTime()) / 86400000));
+  });
+  events
+    .map(normalizeEvent)
+    .filter((e) => !e.isPast && e.zoneId && ZONE_META[e.zoneId])
+    .sort((a, b) => a.date - b.date)
+    .forEach((e) => {
+      const meta = ZONE_META[e.zoneId];
+      if (meta.nextEvent.date === 'TBD') meta.nextEvent = { date: `${e.monthTitle} ${e.day}`, time: e.time };
+    });
 }
 
 export const ZONE_MASCOTS = [
@@ -234,30 +255,6 @@ export const ZONE_MASCOTS = [
 ];
 export const MASCOT_UNLOCK_CHECKINS = 1;
 
-export const MOCK_LEADERS = [
-  { id: 'mock1', full_name: 'Jordan Mitchell', points: 340, bags_collected: 42, minutes_cleaned: 420, events_attended: 12, streak_weeks: 6, _color: '#2d6a4f' },
-  { id: 'mock2', full_name: 'Ava Kim', points: 285, bags_collected: 31, minutes_cleaned: 355, events_attended: 9, streak_weeks: 4, _color: '#0077b6' },
-  { id: 'mock3', full_name: 'Grace Rivera', points: 247, bags_collected: 28, minutes_cleaned: 310, events_attended: 8, streak_weeks: 3, _color: '#5b8c6e' },
-  { id: 'mock4', full_name: 'Dana Morrison', points: 209, bags_collected: 24, minutes_cleaned: 262, events_attended: 7, streak_weeks: 2, _color: '#c96f2f' },
-  { id: 'mock5', full_name: 'Xiu Park', points: 188, bags_collected: 19, minutes_cleaned: 235, events_attended: 6, streak_weeks: 2, _color: '#c77dff' },
-  { id: 'mock6', full_name: 'Tom Chen', points: 162, bags_collected: 15, minutes_cleaned: 203, events_attended: 5, streak_weeks: 1, _color: '#f4a261' },
-  { id: 'mock7', full_name: 'Beth Nakamura', points: 141, bags_collected: 12, minutes_cleaned: 176, events_attended: 4, streak_weeks: 1, _color: '#8c9aad' },
-  { id: 'mock8', full_name: 'Frank Morales', points: 128, bags_collected: 10, minutes_cleaned: 160, events_attended: 4, streak_weeks: 0, _color: '#b5703a' },
-  { id: 'mock9', full_name: 'Sam Lee', points: 104, bags_collected: 8, minutes_cleaned: 130, events_attended: 3, streak_weeks: 1, _color: '#2d9cdb' },
-  { id: 'mock10', full_name: 'Kim Washington', points: 87, bags_collected: 6, minutes_cleaned: 109, events_attended: 3, streak_weeks: 0, _color: '#27ae60' },
-  { id: 'mock11', full_name: 'Lou Harris', points: 74, bags_collected: 5, minutes_cleaned: 92, events_attended: 2, streak_weeks: 0, _color: '#c9a227' },
-];
-
-export const ACTIVITY_FEED_SEED = [
-  { id: 'a1', type: 'checkin', name: 'Jordan M.', zoneId: 'z5', blockName: '279 North Ramp', bags: 3, minsAgo: 8, color: '#0077b6' },
-  { id: 'a2', type: 'checkin', name: 'Anonymous', anonymous: true, zoneId: 'z1', blockName: null, bags: 2, minsAgo: 22, color: '#5b8c6e' },
-  { id: 'a3', type: 'checkin', name: 'Sam K.', zoneId: 'z2', blockName: 'Stockton Ave', bags: 5, minsAgo: 45, color: '#c96f2f' },
-  { id: 'a4', type: 'checkin', name: 'Priya R.', zoneId: 'z3', blockName: null, bags: 1, minsAgo: 120, color: '#c77dff' },
-  { id: 'a5', type: 'checkin', name: 'Marcus T.', zoneId: 'z6', blockName: 'Hospital West', bags: 4, minsAgo: 300, color: '#f4a261' },
-  { id: 'a6', type: 'adopt', name: 'Leila D.', zoneId: 'z7', blockName: 'Dunloe Ave.', bags: 0, minsAgo: 360, color: '#2d6a4f' },
-  { id: 'a7', type: 'checkin', name: 'Chris B.', zoneId: 'z4', blockName: 'Cedar Ave', bags: 6, minsAgo: 1440, color: '#8c9aad' },
-];
-
 export const MIXER = {
   host: 'Discover Deutschtown',
   blurb: 'Every cleaner is invited to our quarterly neighborhood mixer — food, drinks, and the neighbors who keep this place looking good.',
@@ -267,8 +264,8 @@ export const MIXER = {
 // Flip to true after the nonprofit exists and VENMO_HANDLE is its real account.
 export const DONATIONS_ENABLED = false;
 
-// ⚠️ Placeholder from the web version — replace with the real Venmo handle
-export const VENMO_HANDLE = 'CleanEastAllegheny';
+// Left empty on purpose. Set the real account's handle before turning donations on.
+export const VENMO_HANDLE = '';
 
 export function zoneById(id) {
   return ZONES.find((z) => z.id === id) || null;

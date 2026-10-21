@@ -1,4 +1,4 @@
-import { MOCK_LEADERS, ZONE_MASCOTS, zoneById, blockById, formatMinutes, ADOPTION_RULES } from '../data.js';
+import { ZONE_MASCOTS, zoneById, blockById, formatMinutes, ADOPTION_RULES } from '../data.js';
 import { getState, setProfileName, timeAgo, getRemote, refreshRemote, colorFor, resetAll } from '../store.js';
 import { deleteMyAccount } from '../backend.js';
 import { icon, esc, openSheet, closeSheet, toast } from '../ui.js';
@@ -15,32 +15,17 @@ function initials(name) {
     .toUpperCase() || '🙂';
 }
 
-// Real neighbors once the server has at least three of them, example names until then.
-// The returned array has `.example = true` when it is showing example names.
+// The real leaderboard from the server: neighbors with named check-ins, most points first.
 function leaderboardData() {
-  const s = getState();
-  const you = {
-    id: 'you',
-    full_name: s.profile.name || 'You',
-    points: s.profile.points,
-    isYou: true,
-    _color: '#2d6a4f',
-  };
-  const real = getRemote().leaders;
-  if (real && real.length >= 3) {
-    const rows = real.map((r) => ({
-      id: 'r' + r.rank,
-      full_name: r.full_name,
-      points: Number(r.points),
-      streak_weeks: r.streak_weeks,
-      isYou: r.is_you,
-      _color: r.is_you ? '#2d6a4f' : colorFor(r.full_name),
-    }));
-    // Not on the board yet (no named check-ins), so show where you stand.
-    if (!rows.some((r) => r.isYou)) rows.push(you);
-    return Object.assign(rows.sort((a, b) => b.points - a.points), { example: false });
-  }
-  return Object.assign([...MOCK_LEADERS, you].sort((a, b) => b.points - a.points), { example: true });
+  const real = getRemote().leaders || [];
+  return real.map((r) => ({
+    id: 'r' + r.rank,
+    full_name: r.full_name,
+    points: Number(r.points),
+    streak_weeks: r.streak_weeks,
+    isYou: r.is_you,
+    _color: r.is_you ? '#2d6a4f' : colorFor(r.full_name),
+  }));
 }
 
 function podiumHtml(top3) {
@@ -125,7 +110,7 @@ export function renderProfile(root) {
         <div class="card profile-hero">
           <div class="profile-avatar">${esc(initials(s.profile.name || ''))}</div>
           <div class="profile-name">${esc(s.profile.name || 'Neighbor')}</div>
-          <div style="font-size:12.5px;opacity:.8;margin-top:2px">Deutschtown · Rank #${youRank} on the board</div>
+          <div style="font-size:12.5px;opacity:.8;margin-top:2px">Deutschtown${youRank ? ` · Rank #${youRank} on the board` : ''}</div>
           <div class="profile-stats">
             <div><div class="stat-value">${s.profile.points}</div><div class="stat-label">Points</div></div>
             <div><div class="stat-value">${esc(formatMinutes(s.profile.minutes))}</div><div class="stat-label">Cleaned</div></div>
@@ -136,9 +121,8 @@ export function renderProfile(root) {
 
       <div class="section">
         <div class="section-title">🏆 Leaderboard</div>
-        ${leaders.example ? '<p style="font-size:12px;color:var(--warm-gray);margin:-4px 2px 8px">Example names until neighbors start checking in.</p>' : ''}
         <div class="card">
-          ${podiumHtml(leaders.slice(0, 3))}
+          ${leaders.length ? podiumHtml(leaders.slice(0, 3)) : `<div class="empty-state" style="padding:18px 8px"><div class="empty-emoji">🏆</div><p>Nobody is on the board yet.<br>Check in to claim the first spot.</p></div>`}
           <div style="margin-top:8px">
             ${leaders.slice(3, 11).map((p, i) => `
               <div class="lb-row ${p.isYou ? 'lb-row--you' : ''}">

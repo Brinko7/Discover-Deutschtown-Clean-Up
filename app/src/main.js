@@ -131,7 +131,7 @@ async function boot() {
   subscribeRemote(() => {
     if (document.querySelector('.onboard-screen')) return; // never replace the welcome screen
     if (document.querySelector('.sheet-wrap')) return;
-    if (currentTab !== 'home' && currentTab !== 'profile') return;
+    if (!['home', 'profile', 'events'].includes(currentTab)) return;
     const root = document.getElementById('screen-root');
     const top = root.scrollTop;
     navigate(currentTab);
