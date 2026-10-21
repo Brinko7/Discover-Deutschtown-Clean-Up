@@ -14,7 +14,7 @@ returns table (
   id uuid, name text, organizer text, zone_id text, meeting_point text,
   event_date date, start_time time, duration text, spots integer, supplies text, description text,
   sponsored boolean, sponsor_url text, reward_type text, prize text, raffle_prize text, top_prize text,
-  going bigint, volunteers bigint, bags numeric
+  going bigint, volunteers bigint, bags numeric, is_mine boolean
 )
 language sql stable security definer set search_path = public as $$
   select e.id, e.name, e.organizer, e.zone_id, e.meeting_point,
@@ -22,7 +22,8 @@ language sql stable security definer set search_path = public as $$
          e.sponsored, e.sponsor_url, e.reward_type, e.prize, e.raffle_prize, e.top_prize,
          (select count(*) from public.rsvps r where r.event_id = e.id::text),
          (select count(distinct c.user_id) from public.checkins c where c.event_id = e.id::text),
-         (select coalesce(sum(c.bags), 0) from public.checkins c where c.event_id = e.id::text)
+         (select coalesce(sum(c.bags), 0) from public.checkins c where c.event_id = e.id::text),
+         coalesce(e.created_by = auth.uid(), false)
   from public.events e
   where e.status = 'approved' and e.event_date >= current_date - 90
   order by e.event_date, e.start_time
@@ -49,9 +50,27 @@ language sql stable security definer set search_path = public as $$
   from public.checkins c;
 $$;
 
+-- Who showed up at an event, for the person who created it only (used to run the prize draw).
+-- Anonymous attendees appear as 'Anonymous'. Only verified (on-site) check-ins are listed.
+create or replace function public.get_event_attendees(p_event text)
+returns table (display_name text, anonymous boolean, bags numeric, minutes integer, checked_in_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select case when c.anonymous then 'Anonymous'
+              else coalesce(nullif(p.full_name, ''), nullif(p.username, ''), 'Neighbor') end,
+         c.anonymous, c.bags, c.minutes, c.created_at
+  from public.checkins c
+  join public.profiles p on p.id = c.user_id
+  where c.event_id = p_event
+    and c.verified
+    and exists (select 1 from public.events e where e.id::text = p_event and e.created_by = auth.uid())
+  order by c.created_at;
+$$;
+
 revoke all on function public.get_events() from public;
+revoke all on function public.get_event_attendees(text) from public, anon;
 revoke all on function public.get_zone_activity() from public;
 revoke all on function public.get_community_stats() from public;
 grant execute on function public.get_events() to anon, authenticated;
+grant execute on function public.get_event_attendees(text) to authenticated;
 grant execute on function public.get_zone_activity() to anon, authenticated;
 grant execute on function public.get_community_stats() to anon, authenticated;

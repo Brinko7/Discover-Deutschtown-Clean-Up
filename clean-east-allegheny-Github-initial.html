@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-10-21 13:49:54 -->
+<!-- VERSION: 2026-10-21 16:30:30 -->
 <!-- 
   SUPABASE SCHEMA ADDITIONS FOR BLOCKS:
   
@@ -2969,22 +2969,22 @@ function closeAbout() {
       <div class="stat-card">
         <div class="stat-icon green">⏱️</div>
         <div>
-          <div class="stat-label">Minutes cleaned this month</div>
-          <div class="stat-value" id="minutes-count">4,180</div>
+          <div class="stat-label">Minutes cleaned</div>
+          <div class="stat-value" id="minutes-count">0</div>
         </div>
       </div>
       <div class="stat-card">
         <div class="stat-icon amber">👥</div>
         <div>
-          <div class="stat-label">Active volunteers</div>
-          <div class="stat-value">38</div>
+          <div class="stat-label">Volunteers</div>
+          <div class="stat-value" id="volunteers-count">0</div>
         </div>
       </div>
       <div class="stat-card">
         <div class="stat-icon sky">🗺️</div>
         <div>
           <div class="stat-label">Zones cleaned this week</div>
-          <div class="stat-value">6 / 8</div>
+          <div class="stat-value" id="zones-week-count">0</div>
         </div>
       </div>
     </div>
@@ -3306,7 +3306,7 @@ function closeAbout() {
       <!-- Venmo handle badge -->
       <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:30px;padding:8px 18px;margin-bottom:28px;font-size:14px;font-weight:600">
         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Venmo_logo_blue.svg/320px-Venmo_logo_blue.svg.png" style="height:16px;filter:brightness(0) invert(1)" alt="Venmo" onerror="this.style.display='none'">
-        <span style="color:rgba(255,255,255,0.9)">@CleanEastAllegheny</span>
+        <span style="color:rgba(255,255,255,0.9)">@</span>
         <button onclick="copyVenmoHandle()" style="background:rgba(255,255,255,0.15);border:none;border-radius:20px;padding:3px 10px;font-size:14px;color:#fff;cursor:pointer;font-family:'Roboto Serif',sans-serif;font-weight:600" id="copy-handle-btn">Copy</button>
       </div>
 
@@ -3336,15 +3336,9 @@ function closeAbout() {
 
       <!-- Note -->
       <p style="font-size:14px;color:rgba(255,255,255,0.5);margin-top:4px;margin-bottom:28px">
-        Opens Venmo app or venmo.com · Search <strong style="color:rgba(255,255,255,0.75)">@CleanEastAllegheny</strong> if redirect doesn't work
+        Opens Venmo app or venmo.com
       </p>
 
-      <!-- Stats row -->
-      <div style="display:flex;gap:32px;justify-content:center;flex-wrap:wrap;padding-top:20px;border-top:1px solid rgba(255,255,255,0.15)">
-        <div><div style="font-family:'Lexend',sans-serif;font-weight:800;font-size:28px">4,180</div><div style="font-size:14px;color:rgba(255,255,255,0.6);margin-top:2px">minutes cleaned</div></div>
-        <div><div style="font-family:'Lexend',sans-serif;font-weight:800;font-size:28px">38</div><div style="font-size:14px;color:rgba(255,255,255,0.6);margin-top:2px">active volunteers</div></div>
-        <div><div style="font-family:'Lexend',sans-serif;font-weight:800;font-size:28px">8</div><div style="font-size:14px;color:rgba(255,255,255,0.6);margin-top:2px">cleanup zones</div></div>
-      </div>
 
     </div>
   </div>
@@ -3370,7 +3364,7 @@ function closeAbout() {
   <div style="text-align:center;padding:26px 20px 44px;font-size:12.5px;color:var(--warm-gray)">
     <a onclick="showPrivacy()" style="cursor:pointer;color:var(--warm-gray);text-decoration:underline">Privacy Policy</a>
     &nbsp;·&nbsp;
-    <a href="mailto:hello@mindyourblock.org" style="color:var(--warm-gray);text-decoration:underline">hello@mindyourblock.org</a>
+    <a href="mailto:zach.carman@gmail.com" style="color:var(--warm-gray);text-decoration:underline">zach.carman@gmail.com</a>
   </div>
   </div>
 
@@ -3600,7 +3594,7 @@ function closeAbout() {
           <div id="signup-business-fields" style="display:none">
             <div class="sponsor-fields-inner">
               <div class="form-group"><label class="form-label">Business Name <span class="req">*</span></label>
-                <input class="form-input" id="signup-business-name" placeholder="e.g. Allegheny City Brewing"></div>
+                <input class="form-input" id="signup-business-name" placeholder="Your business or organization name"></div>
               <div class="form-group"><label class="form-label">Your Role <span style="text-transform:none;font-weight:400;color:var(--warm-gray)">(optional)</span></label>
                 <input class="form-input" id="signup-business-role" placeholder="e.g. Owner, Manager"></div>
               <div class="form-group"><label class="form-label">Business Website <span style="text-transform:none;font-weight:400;color:var(--warm-gray)">(optional)</span></label>
@@ -3684,9 +3678,9 @@ function closeAbout() {
         <div class="modal-sub">Neighbors and local businesses can host a cleanup. Submit it so the community can RSVP — we'll review and publish within 24 hours.</div>
       </div>
       <div class="modal-body">
-        <div class="form-group"><label class="form-label">Organization or Host Name <span class="req">*</span></label><input class="form-input" id="ev-organizer" placeholder="e.g. Allegheny City Brewing, Deutschtown Neighbors"></div>
+        <div class="form-group"><label class="form-label">Organization or Host Name <span class="req">*</span></label><input class="form-input" id="ev-organizer" placeholder="Your name, business or group"></div>
         <div class="form-group"><label class="form-label">Contact Email <span class="req">*</span></label><input class="form-input" id="ev-email" type="email" placeholder="contact@example.com"></div>
-        <div class="form-group"><label class="form-label">Event / Cleanup Name <span class="req">*</span></label><input class="form-input" id="ev-name" placeholder="e.g. Clean the ACB Block"></div>
+        <div class="form-group"><label class="form-label">Event / Cleanup Name <span class="req">*</span></label><input class="form-input" id="ev-name" placeholder="e.g. Saturday Morning Sweep"></div>
 
         <div class="form-group"><label class="form-label">Cleanup Zone <span class="req">*</span></label>
           <select class="form-select" id="ev-zone">
@@ -3695,7 +3689,7 @@ function closeAbout() {
         </div>
 
         <div class="form-group"><label class="form-label">Meeting Point <span class="req">*</span></label>
-          <input class="form-input" id="ev-meeting" placeholder="e.g. Corner of Foreland St &amp; Cedar Ave, near the brewery">
+          <input class="form-input" id="ev-meeting" placeholder="e.g. Corner of Main St &amp; 1st Ave">
           <div style="font-size:14px;color:var(--warm-gray);margin-top:4px">Where volunteers should gather before starting</div>
         </div>
 
@@ -3735,7 +3729,7 @@ function closeAbout() {
               </select>
             </div>
             <div class="form-group" id="ev-raffle-prize-group"><label class="form-label">Raffle prize <span class="req">*</span></label>
-              <input class="form-input" id="ev-raffle-prize" placeholder="e.g. $50 ACB gift card">
+              <input class="form-input" id="ev-raffle-prize" placeholder="e.g. $50 gift card">
               <div style="font-size:14px;color:var(--warm-gray);margin-top:4px">Drawn at random among everyone who showed up.</div>
             </div>
             <div class="form-group" id="ev-top-prize-group" style="display:none"><label class="form-label">Top cleaner prize <span class="req">*</span></label>
@@ -3783,6 +3777,7 @@ function closeAbout() {
     // Flip to true after the nonprofit exists and VENMO_HANDLE is its real account.
     const DONATIONS_ENABLED = false;
     if (!DONATIONS_ENABLED) document.documentElement.classList.add('no-donations');
+    const VENMO_HANDLE = ''; // set the real account's handle before turning donations on
 
     // The only backend: Supabase project `mind-your-block`. The publishable key is safe to ship
     // because row level security is on for every table (see supabase/migrations).
@@ -3875,15 +3870,7 @@ function closeAbout() {
 
     // ── ACTIVITY FEED ────────────────────────────────────────────
     // Live check-in activity. In production: loaded from Supabase realtime.
-    let ACTIVITY_FEED = [
-      { id:'a1', type:'checkin', userId:'u2', name:'Jordan M.',  anonymous:false, zoneId:'z5', zoneName:'Elementary School', blockName:'School Front',   bags:3, ts: Date.now() - 8*60000,    avatar:null, color:'#0077b6' },
-      { id:'a2', type:'checkin', userId:'u3', name:'Anonymous',  anonymous:true,  zoneId:'z1', zoneName:'South Allegheny Park', blockName:null,           bags:2, ts: Date.now() - 22*60000,   avatar:null, color:'#85ceac' },
-      { id:'a3', type:'checkin', userId:'u4', name:'Sam K.',     anonymous:false, zoneId:'z2', zoneName:'Allegheny Commons', blockName:'Commons Pond Area', bags:5, ts: Date.now() - 45*60000, avatar:null, color:'#ff934f' },
-      { id:'a4', type:'checkin', userId:'u5', name:'Priya R.',   anonymous:false, zoneId:'z3', zoneName:'Allegheny Center Park', blockName:null,          bags:1, ts: Date.now() - 2*3600000, avatar:null, color:'#c77dff' },
-      { id:'a5', type:'checkin', userId:'u6', name:'Marcus T.',  anonymous:false, zoneId:'z6', zoneName:'Hospital',            blockName:'West North Ave', bags:4, ts: Date.now() - 5*3600000, avatar:null, color:'#f4a261' },
-      { id:'a6', type:'adopt',   userId:'u7', name:'Leila D.',   anonymous:false, zoneId:'z7', zoneName:'Dunloe and Knoll',   blockName:'Dunloe St Corridor', bags:0, ts: Date.now() - 6*3600000, avatar:null, color:'#2d6a4f' },
-      { id:'a7', type:'checkin', userId:'u8', name:'Chris B.',   anonymous:false, zoneId:'z4', zoneName:'Park Fountain',       blockName:'Fountain Plaza', bags:6, ts: Date.now() - 24*3600000, avatar:null, color:'#8c9aad' },
-    ];
+    let ACTIVITY_FEED = []; // real check-ins, loaded for signed-in users (see refreshActivityFromDb)
 
     function timeAgo(ts) {
       var diff = Math.floor((Date.now() - ts) / 1000);
@@ -3979,7 +3966,7 @@ function closeAbout() {
 
 
     function donateViaVenmo() {
-      if (!DONATIONS_ENABLED) return;
+      if (!DONATIONS_ENABLED || !VENMO_HANDLE) return;
       if (!selectedDonateAmount) {
         showToast('Please enter a donation amount first.');
         return;
@@ -4026,7 +4013,7 @@ function closeAbout() {
     }
 
     // ── CONTACT / FEEDBACK ───────────────────────────────────────
-    const FEEDBACK_EMAIL = 'hello@mindyourblock.org';
+    const FEEDBACK_EMAIL = 'zach.carman@gmail.com';
 
     function openFeedbackModal() {
       const ov = document.getElementById('feedback-overlay');
@@ -4188,55 +4175,8 @@ function closeAbout() {
     // ============================================================
     // SCHEDULE SUB-TABS + PAST EVENTS
     // ============================================================
-    // Demo dates are generated relative to today so the data never goes stale.
-    const _DEMO_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const _addDays = (n) => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() + n); return d; };
-    const _isoDate = (d) => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-    // nth upcoming Saturday (n=1 is the first one at least two days out)
-    const _upcomingSaturday = (n) => { const d = _addDays(2); d.setDate(d.getDate() + ((6 - d.getDay() + 7) % 7) + (n-1)*7); return d; };
-    // nth most recent Saturday before today
-    const _pastSaturday = (n) => { const d = _addDays(-1); d.setDate(d.getDate() - ((d.getDay() + 1) % 7) - (n-1)*7); return d; };
-    const _labelParts = (d) => ({ month: _DEMO_MONTHS[d.getMonth()].toUpperCase(), day: String(d.getDate()), date: _isoDate(d) });
-
-    const _PAST_RAW = [
-      {
-        id: 'p1', when: _pastSaturday(2), zone: 'South Allegheny Park', time: '9:00 AM',
-        duration: '2 hrs', volunteers: 14, bags: 22,
-        photos: [
-          { emoji: '🌿', label: 'Before cleanup' },
-          { emoji: '🛍️', label: 'Bags collected' },
-          { emoji: '👥', label: 'Volunteers' },
-          { emoji: '✅', label: 'After cleanup' },
-          { emoji: '🌿', label: 'Park restored' },
-          { emoji: '🎉', label: 'Team photo' },
-        ]
-      },
-      {
-        id: 'p2', when: _pastSaturday(4), zone: 'Allegheny Commons', time: '10:00 AM',
-        duration: '2 hrs', volunteers: 9, bags: 15,
-        photos: [
-          { emoji: '🏙️', label: 'Federal St' },
-          { emoji: '🛍️', label: 'Litter pickup' },
-          { emoji: '👷', label: 'Crew at work' },
-        ]
-      },
-      {
-        id: 'p3', when: _pastSaturday(8), zone: 'Allegheny Center Park', time: '8:00 AM',
-        duration: '3 hrs', volunteers: 21, bags: 38,
-        photos: [
-          { emoji: '🌊', label: 'Riverfront' },
-          { emoji: '🛍️', label: 'River debris' },
-          { emoji: '👥', label: 'Large crew' },
-          { emoji: '🌅', label: 'Morning light' },
-        ]
-      },
-      {
-        id: 'p4', when: _pastSaturday(10), zone: 'Park Fountain', time: '11:00 AM',
-        duration: '2 hrs', volunteers: 7, bags: 11,
-        photos: []
-      },
-    ];
-    const PAST_EVENTS = _PAST_RAW.map(({ when, ...ev }) => ({ ...ev, ..._labelParts(when) }));
+    // Events that already happened. Filled from the database, see loadPublicData().
+    const PAST_EVENTS = [];
 
     // Photo lightbox for past events
     let currentEventPhotos = [];
@@ -4255,47 +4195,28 @@ function closeAbout() {
     function renderPastEvents() {
       const el = document.getElementById('past-events-list');
       if (!el) return;
-      el.innerHTML = PAST_EVENTS.map(ev => {
-        const photoCount = ev.photos.length;
-        const previewPhotos = ev.photos.slice(0, 4);
-        const hasMore = photoCount > 4;
-
-        const thumbsHtml = photoCount === 0
-          ? `<div class="past-photos-empty">📷 No photos yet for this event.</div>`
-          : `<div class="past-photos-row">
-              ${previewPhotos.map((p, i) => {
-                const isLast = i === 3 && hasMore;
-                return `<div class="past-photo-thumb" onclick="openPastPhotoLightbox('${ev.id}', ${i})">
-                  <span class="past-photo-placeholder">${p.emoji}</span>
-                  ${isLast ? `<div class="more-overlay">+${photoCount - 4}</div>` : ''}
-                </div>`;
-              }).join('')}
-            </div>
-            ${photoCount > 4 ? `<button class="view-all-photos-btn" onclick="openPastPhotoLightbox('${ev.id}', 0)">📷 View all ${photoCount} photos</button>` : ''}`;
-
-        return `<div class="past-event-card">
+      if (!PAST_EVENTS.length) {
+        el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--warm-gray);font-size:14px">No past events yet.</div>';
+        return;
+      }
+      el.innerHTML = PAST_EVENTS.map(ev => `<div class="past-event-card">
           <div class="past-event-header">
             <div class="past-event-date">
               <div class="sched-month">${ev.month}</div>
-              <div class="sched-day" style="font-family:"Lexend",sans-serif;font-weight:800;font-size:28px">${ev.day}</div>
+              <div class="sched-day" style="font-family:'Lexend',sans-serif;font-weight:800;font-size:28px">${ev.day}</div>
             </div>
             <div class="past-event-meta">
               <div class="past-event-title">${ev.zone}</div>
               <div class="past-event-details">
                 <span>🕐 ${ev.time}</span>
-                <span>⏳ ${ev.duration}</span>
-                <span>👥 ${ev.volunteers} volunteers</span>
-                <span>⏱️ ${ev.minutes || 0} min cleaned</span>
+                ${ev.duration ? `<span>⏳ ${ev.duration}</span>` : ''}
+                <span>👥 ${ev.volunteers} volunteer${ev.volunteers === 1 ? '' : 's'}</span>
+                <span>🗑️ ${ev.bags} bags</span>
               </div>
             </div>
             <div class="past-event-badge">✅ Completed</div>
           </div>
-          <div class="past-event-photos">
-            <div class="past-photos-label">Event Photos</div>
-            ${thumbsHtml}
-          </div>
-        </div>`;
-      }).join('');
+        </div>`).join('');
     }
 
 
@@ -4654,6 +4575,7 @@ function closeAbout() {
       currentProfile = data || { id: currentUser.id, full_name: '', username: '' };
       await loadUserRsvps();
       await loadMyData();
+      loadLeaderboard();
       renderNavAuth();
       renderLbSidebar();
       renderSchedule();
@@ -4889,43 +4811,26 @@ function closeAbout() {
     // ============================================================
     // LEADERBOARD
     // ============================================================
-    // ── Mock leaderboard data - remove once real users sign up ──────────────
-    const MOCK_LEADERS = [
-      { id:'mock1', full_name:'Jordan Mitchell',  username:'jordan_ea',    avatar_url:null, points:340, bags_collected:42, minutes_cleaned:420, events_attended:12, streak_weeks:6,  neighborhood:'Deutschtown', _color:'#2d6a4f',  _badges:['🔥 6-week streak','⭐ 12 events','⏱️ 5+ hours'] },
-      { id:'mock2', full_name:'Ava Kim',           username:'ava_k',        avatar_url:null, points:285, bags_collected:31, minutes_cleaned:355, events_attended:9,  streak_weeks:4,  neighborhood:'Deutschtown', _color:'#0077b6',  _badges:['🔥 4-week streak','⭐ 9 events'] },
-      { id:'mock3', full_name:'Grace Rivera',      username:'grace_r',      avatar_url:null, points:247, bags_collected:28, minutes_cleaned:310, events_attended:8,  streak_weeks:3,  neighborhood:'Deutschtown', _color:'#85ceac',  _badges:['🔥 3-week streak','⏱️ 5+ hours'] },
-      { id:'mock4', full_name:'Dana Morrison',     username:'dana_m',       avatar_url:null, points:209, bags_collected:24, minutes_cleaned:262, events_attended:7,  streak_weeks:2,  neighborhood:'Deutschtown', _color:'#ff934f',  _badges:['⭐ 7 events'] },
-      { id:'mock5', full_name:'Xiu Park',          username:'xiu_p',        avatar_url:null, points:188, bags_collected:19, minutes_cleaned:235, events_attended:6,  streak_weeks:2,  neighborhood:'Deutschtown', _color:'#c77dff',  _badges:['⏱️ 5+ hours'] },
-      { id:'mock6', full_name:'Tom Chen',          username:'tom_c',        avatar_url:null, points:162, bags_collected:15, minutes_cleaned:203, events_attended:5,  streak_weeks:1,  neighborhood:'Deutschtown', _color:'#f4a261',  _badges:['⭐ 5 events'] },
-      { id:'mock7', full_name:'Beth Nakamura',     username:'beth_n',       avatar_url:null, points:141, bags_collected:12, minutes_cleaned:176, events_attended:4,  streak_weeks:1,  neighborhood:'Deutschtown', _color:'#8c9aad',  _badges:[] },
-      { id:'mock8', full_name:'Frank Morales',     username:'frank_m',      avatar_url:null, points:128, bags_collected:10, minutes_cleaned:160, events_attended:4,  streak_weeks:0,  neighborhood:'Deutschtown', _color:'#b5703a',  _badges:[] },
-      { id:'mock9', full_name:'Sam Lee',           username:'sam_l',        avatar_url:null, points:104, bags_collected:8, minutes_cleaned:130,  events_attended:3,  streak_weeks:1,  neighborhood:'Deutschtown', _color:'#2d9cdb',  _badges:[] },
-      { id:'mock10',full_name:'Kim Washington',    username:'kim_w',        avatar_url:null, points:87,  bags_collected:6, minutes_cleaned:109,  events_attended:3,  streak_weeks:0,  neighborhood:'Deutschtown', _color:'#27ae60',  _badges:[] },
-      { id:'mock11',full_name:'Lou Harris',        username:'lou_h',        avatar_url:null, points:74,  bags_collected:5, minutes_cleaned:92,  events_attended:2,  streak_weeks:0,  neighborhood:'Deutschtown', _color:'#c9a227',  _badges:[] },
-      
-    ];
-
-
     async function loadLeaderboard() {
       let leaders = [];
       if (!sb) { renderLeaderboard([]); return; }
+      if (!currentUser) { renderLeaderboard(null); return; }
       try {
         // Signed-in users get the real leaderboard from the database function.
-        // Guests (not signed in) cannot call it, so they see the example data.
+        // Guests (not signed in) cannot call it, so they are asked to sign in.
         const { data } = await sb.rpc('get_leaderboard', { max_rows: 11 });
         const real = (data || []).map(function(r) {
           return {
             id: r.is_you && currentUser ? currentUser.id : 'lb-' + r.rank,
-            username: r.username, full_name: r.full_name, avatar_url: r.avatar_url,
+            username: _escH(r.username), full_name: _escH(r.full_name), avatar_url: _safeUrl(r.avatar_url) || null,
             points: Number(r.points), bags_collected: Number(r.bags_collected),
             events_attended: Number(r.events_attended), streak_weeks: r.streak_weeks,
-            neighborhood: r.neighborhood
+            neighborhood: _escH(r.neighborhood)
           };
         });
-        // Show example data if fewer than 3 real users to make the leaderboard feel populated
-        leaders = real.length >= 3 ? real : MOCK_LEADERS;
+        leaders = real;
       } catch(e) {
-        leaders = MOCK_LEADERS;
+        leaders = [];
       }
       renderLeaderboard(leaders);
       setTimeout(renderDashboard, 100);
@@ -4935,18 +4840,18 @@ function closeAbout() {
     function renderLeaderboard(leaders) {
       const el = document.getElementById('lb-list');
       const isMe = id => currentUser && currentUser.id === id;
-      const isMock = leaders.length > 0 && String(leaders[0].id).startsWith('mock');
-      
       if (!el) return;
+      if (leaders === null) {
+        el.innerHTML = '<div style="padding:32px;text-align:center;color:var(--warm-gray);font-size:14px">Sign in to see the leaderboard and your rank.</div>';
+        return;
+      }
 
       if (leaders.length === 0) {
         el.innerHTML = '<div style="padding:32px;text-align:center;color:var(--warm-gray);font-size:14px">No volunteers yet. Be the first to check in!</div>';
         return;
       }
 
-      const mockBanner = isMock ? `<div style="background:#fff0e6;border-left:4px solid #f59e0b;padding:10px 16px;font-size:14px;color:#6b4800;grid-column:1/-1">
-        👋 <strong>Example data</strong> - real members appear once people sign up and check in.
-      </div>` : '';
+      const mockBanner = '';
 
       function avatarEl(l, cls) {
         const name = l.full_name || l.username || 'A';
@@ -5091,7 +4996,7 @@ function closeAbout() {
       <div style="flex:1;min-width:0">
         ${badge ? `<div style="margin-bottom:5px">${badge}</div>` : ''}
         <div class="sched-zone sched-zone-link" onclick="openEventDetail('${s.id}')" title="View event details">${s.zone}</div>
-        <div class="sched-details"><span>🕐 ${s.time}</span><span>⏳ ${s.duration}</span><span>👥 ${s.spots} spots left</span><span>🔧 ${s.supplies}</span></div>
+        <div class="sched-details"><span>🕐 ${s.time}</span><span>⏳ ${s.duration}</span><span>👥 ${s.spots === 'Open' ? 'Open to everyone' : s.spots + ' spots left'}</span>${s.supplies ? '<span>🔧 ' + s.supplies + '</span>' : ''}</div>
         ${s.meeting ? `<div style="font-size:14px;color:var(--warm-gray);margin-top:3px">📍 ${s.meeting}</div>` : ''}
         ${prize}
       </div>
@@ -5117,7 +5022,7 @@ function closeAbout() {
         // RSVP — guests can RSVP locally, signed-in users save to DB
         if (currentUser) {
           await sb.from('rsvps').insert({ user_id: currentUser.id, event_id: eventId });
-          showToast('You\'re signed up! +25 pts when you attend. 🎉');
+          showToast('You\'re signed up! See you there. 🎉');
         } else {
           showToast('RSVP saved! Sign in to earn points and track your events.');
         }
@@ -5147,10 +5052,6 @@ function closeAbout() {
         <div class="sched-details"><span>🕐 ${e.time}</span><span>⏳ ${e.duration}</span><span>📍 ${e.zone}</span><span>🏢 ${e.organizer}</span><span>📧 ${e.email}</span>${e.spots ? `<span>👥 ${e.spots} spots</span>` : ''}${e.sponsored ? `<span>🎁 Sponsored</span>` : ''}</div>
         ${e.sponsored && e.prize ? `<div class="prize-line">🎁 ${rewardLabel(e.rewardType)}: ${e.prize}</div>` : ''}
         ${e.desc ? `<div style="font-size:14px;color:var(--warm-gray);margin-top:4px">${e.desc}</div>` : ''}
-      </div>
-      <div class="sched-actions">
-        <button class="approve-btn" onclick="approveEvent(${i})">✅ Approve</button>
-        <button class="reject-btn" onclick="rejectEvent(${i})">✕ Reject</button>
       </div>
     </div>`).join('');
     }
@@ -5246,30 +5147,6 @@ function closeAbout() {
       showToast(sponsored
         ? `🎁 Sponsored event submitted! We'll review and contact ${organizer}.`
         : `Submitted! We'll contact ${organizer} at ${email} once approved.`);
-    }
-
-
-    function approveEvent(i) {
-      const e = pendingEventsList[i];
-      if (!e) return;
-      const newEvent = {
-        id: e.id, month: e.month, day: e.day, zone: e.name, zoneId: e.zoneId, time: e.time,
-        duration: e.duration, spots: parseInt(e.spots, 10) || 20,
-        supplies: e.supplies || 'Bags, Gloves', meeting: e.meeting || e.zone,
-        sponsored: e.sponsored, organizer: e.organizer, sponsorUrl: e.sponsorUrl,
-        rewardType: e.rewardType, prize: e.prize, rafflePrize: e.rafflePrize, topPrize: e.topPrize
-      };
-      SCHEDULE.push(newEvent);
-      pendingEventsList.splice(i, 1);
-      renderSchedule(); renderPending();
-      showToast(`"${e.name}" approved and added to the calendar!`);
-    }
-
-    function rejectEvent(i) {
-      const e = pendingEventsList[i];
-      pendingEventsList.splice(i, 1);
-      renderPending();
-      showToast(`"${e.name}" removed.`);
     }
 
 
@@ -5396,31 +5273,17 @@ function closeAbout() {
     let activeDrawingZone = null;
 
     // ── SCHEDULE DATA ────────────────────────────────────────────
-    const _SCHEDULE_RAW = [
-      { id: 's1', when: _upcomingSaturday(1), zoneId: 'z1',  zone: 'South Allegheny Park',  time: '9:00 AM',  duration: '2 hrs', spots: 20, supplies: 'Bags &amp; Gloves', meeting: 'Corner of Spring Way &amp; Cedar Ave' },
-      { id: 's2', when: _upcomingSaturday(2), zoneId: 'z1', zone: 'Allegheny Commons',     time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags, Gloves &amp; Grabbers', meeting: 'Commons main entrance on Arch St' },
-      { id: 's3', when: _upcomingSaturday(3), zoneId: 'z3', zone: 'Allegheny Center Park', time: '9:00 AM',  duration: '3 hrs', spots: 20, supplies: 'Bags, Gloves &amp; Vests', meeting: 'East St park entry, near the fountain' },
-      { id: 's4', when: _upcomingSaturday(4), zoneId: 'z7', zone: 'Dunloe and Knoll',      time: '10:00 AM', duration: '2 hrs', spots: 20, supplies: 'Bags &amp; Gloves', meeting: 'Dunloe Ave &amp; Knoll St intersection' },
-      { id: 's5', when: _upcomingSaturday(5), zoneId: 'z4',  zone: 'Park Fountain',         time: '9:00 AM',  duration: '2 hrs', spots: 15, supplies: 'Bags, Gloves &amp; Vests', meeting: 'Park Fountain main entrance on North Ave', recurring: 'weekly' },
-      { id: 's6', when: _addDays(4), zone: 'Clean the ACB Block', zoneId: 'z3', time: '12:00 PM', duration: '3 hrs', spots: 25, supplies: 'Bags, Gloves &amp; Grabbers', meeting: 'Allegheny City Brewing, 507 Foreland St', sponsored: true, organizer: 'Allegheny City Brewing', sponsorUrl: 'https://alleghenycitybrewing.com', rewardType: 'both', prize: '$50 ACB gift card raffle + a free pint for the top cleaner', rafflePrize: '$50 ACB gift card', topPrize: 'A free pint' },
-    ];
-    const SCHEDULE = _SCHEDULE_RAW
-      .map(({ when, ...ev }) => ({ ...ev, ..._labelParts(when) }))
-      .sort((x, y) => x.date.localeCompare(y.date));
+    // Upcoming approved events. Filled from the database, see loadPublicData().
+    const SCHEDULE = [];
 
-    const _zoneNext = (id) => { const e = SCHEDULE.find(x => x.zoneId === id); return e ? { date: e.month[0] + e.month.slice(1).toLowerCase() + ' ' + e.day, time: e.time } : { date: 'TBD', time: '' }; };
-    const _zoneSince = (n) => n === null ? null : _isoDate(_addDays(-n));
-    const ZONE_META = {
-      z1:  { lastCleanup: _zoneSince(5),  daysSince: 5,   activeUsers: [], nextEvent: _zoneNext('z1') },
-      z2:  { lastCleanup: _zoneSince(19), daysSince: 19,  activeUsers: [], nextEvent: _zoneNext('z2') },
-      z3:  { lastCleanup: _zoneSince(40), daysSince: 40,  activeUsers: [], nextEvent: _zoneNext('z3') },
-      z4:  { lastCleanup: _zoneSince(59), daysSince: 59,  activeUsers: [], nextEvent: _zoneNext('z4') },
-      z5:  { lastCleanup: _zoneSince(0),  daysSince: 0,   activeUsers: ['u1'], nextEvent: _zoneNext('z5') },
-      z6:  { lastCleanup: _zoneSince(22), daysSince: 22,  activeUsers: [], nextEvent: _zoneNext('z6') },
-      z7:  { lastCleanup: _zoneSince(10), daysSince: 10,  activeUsers: [], nextEvent: _zoneNext('z7') },
-      z8:  { lastCleanup: null,           daysSince: 999, activeUsers: [], nextEvent: _zoneNext('z8') },
-      z9:  { lastCleanup: null,           daysSince: 999, activeUsers: [], nextEvent: _zoneNext('z9') }
-    };
+    // Zone status. Every zone starts as "never cleaned" until real check-ins say otherwise (see loadPublicData).
+    const ZONE_META = {};
+    function resetZoneMeta() {
+      ZONES.forEach(function(z) {
+        ZONE_META[z.id] = { lastCleanup: null, daysSince: 999, activeUsers: [], nextEvent: { date: 'TBD', time: '' } };
+      });
+    }
+    resetZoneMeta();
 
 
     function getZoneStatus(zoneId) {
@@ -6120,13 +5983,6 @@ function saveZonePolygon() {
       detailEl.style.display = 'flex';
       detailEl.innerHTML = '<div style="padding:20px;color:var(--warm-gray)">Loading...</div>';
 
-      // Build photos (mock placeholders)
-      const photos = [
-        { emoji: '📸', label: 'Before' },
-        { emoji: '🌿', label: 'Progress' },
-        { emoji: '✅', label: 'After' },
-      ];
-
       // Adoption status for this zone
       const zoneBlocks = getBlocksForZone(id);
       const adoptedBlocks = zoneBlocks.filter(function(b) { return b.adoptedBy; });
@@ -6179,11 +6035,6 @@ function saveZonePolygon() {
           : '<div class="zd-empty-state">No upcoming events. <button onclick="openEventFormModal()" class="btn btn-tertiary" style="font-size:14px;padding:4px 10px">List one</button></div>'
         ) +
 
-        '<div class="zd-section-title" style="margin-top:14px">Recent Photos</div>' +
-        '<div class="zd-photos">' +
-          photos.map(p => '<div class="zd-photo-thumb">' + p.emoji + '</div>').join('') +
-          '<div class="zd-photo-thumb zd-photo-add" onclick="showAbout()">+</div>' +
-        '</div>' +
 
         
 
@@ -6288,7 +6139,17 @@ function saveZonePolygon() {
       const zoneObj = ev.zoneId ? ZONES.find(z => z.id === ev.zoneId) : null;
       const zoneName = zoneObj ? zoneObj.name : (ev.zone || '');
 
-      // Live turnout from verified check-ins
+      // Hosts get the verified attendee list from the database (for the draw). Everyone sees the turnout count.
+      if (ev.isMine && currentUser && !ev._attendeesLoaded && sb) {
+        ev._attendeesLoaded = true;
+        sb.rpc('get_event_attendees', { p_event: ev.id }).then(function(res) {
+          window.EVENT_ATTENDANCE[ev.id] = (res.data || []).map(function(a, i) {
+            return { userId: 'att-' + i, name: a.display_name, anon: a.anonymous, bags: Number(a.bags) || 0,
+                     minutes: a.minutes, verifiedAt: new Date(a.checked_in_at).getTime(), ts: new Date(a.checked_in_at).getTime() };
+          });
+          var _edp = document.getElementById('event-detail-page'); if (_edp && _edp.style.display !== 'none') openEventDetail(eventId);
+        });
+      }
       const attendees = (window.EVENT_ATTENDANCE && window.EVENT_ATTENDANCE[ev.id]) || [];
       const minutesTotal = attendees.reduce((n, a) => n + (parseInt(a.minutes, 10) || 0), 0);
       const turnoutCard = attendees.length
@@ -6298,12 +6159,11 @@ function saveZonePolygon() {
            </div>`
         : (ev.sponsored ? `<div class="ed-turnout-empty">🎁 No check-ins yet — be the first to verify on-site and enter the draw.</div>` : '');
 
-      // Prize draw (organizer action) — sponsored events only.
-      // NOTE: for production, gate this to the event's creator (created_by === currentUser.id).
+      // Prize draw (organizer action) — sponsored events, and only for the person who created the event.
       const _win = (typeof _eventWindow === 'function') ? _eventWindow(ev) : null;
       const _ended = SPONSOR_VERIFY.demoBypass || (_win && new Date() > _win.end);
       let drawSection = '';
-      if (ev.sponsored) {
+      if (ev.sponsored && ev.isMine) {
         if (ev._draw) {
           drawSection = '<div class="ed-section-h">🏆 Prize draw — results</div>' + drawResultsHTML(ev) +
             '<div style="margin-top:4px"><button class="btn btn-tertiary" style="font-size:14px" onclick="openDrawModal(\'' + ev.id + '\')">Re-draw</button></div>';
@@ -6669,7 +6529,9 @@ function saveZonePolygon() {
         ? ACTIVITY_FEED.filter(function(a) { return a.zoneId === selectedZone; })
         : ACTIVITY_FEED;
       if (!items.length) {
-        el.innerHTML = '<div class="activity-empty">No recent activity. Be the first to check in!</div>';
+        el.innerHTML = '<div class="activity-empty">' + (signedIn
+          ? 'No recent activity. Be the first to check in!'
+          : 'Sign in to see what your neighbors have been cleaning.') + '</div>';
         return;
       }
       el.innerHTML = items.map(function(a) {
@@ -6703,6 +6565,24 @@ function saveZonePolygon() {
         });
       }
       renderActivityFeed();
+      refreshActivityFromDb();
+    }
+
+    // Real activity from the database (names and totals only). Guests cannot read it.
+    async function refreshActivityFromDb() {
+      if (!sb || !currentUser) { ACTIVITY_FEED.length = 0; renderActivityFeed(); return; }
+      try {
+        const { data } = await sb.rpc('get_activity_feed', { max_rows: 30 });
+        ACTIVITY_FEED.length = 0;
+        (data || []).forEach(function(f) {
+          ACTIVITY_FEED.push({
+            id: f.id, type: 'checkin', userId: null, name: _escH(f.display_name), anonymous: f.display_name === 'Anonymous',
+            zoneId: f.zone_id, zoneName: (ZONES.find(function(z) { return z.id === f.zone_id; }) || {}).name || '',
+            blockName: _escH(f.block_name), bags: Number(f.bags) || 0, ts: new Date(f.created_at).getTime(), color: '#2d6a4f'
+          });
+        });
+        renderActivityFeed();
+      } catch (e) { console.warn('Could not load activity:', e); }
     }
 
     function addActivityEntry(entry) {
@@ -6795,22 +6675,13 @@ function saveZonePolygon() {
       geofenceMeters: 150,   // how close to the event zone you must be
       earlyGraceMin: 30,     // can check in this many minutes before start
       lateGraceMin:  30,     // ...and this many minutes after it ends
-      demoBypass:    false,  // TESTING ONLY — true = skip GPS + time checks
-      skipGeofence:  true    // DEMO — true = skip ONLY the GPS/location check (time check still runs)
+      demoBypass:    false,  // TESTING ONLY — true = skip GPS + time checks. Keep false.
+      skipGeofence:  false   // true = skip ONLY the GPS check. Keep false so attendance means being there.
     };
 
     let _ciPendingEvent = null;   // event awaiting verification
     let _ciEventContext = null;   // verified context carried into the check-in
     window.EVENT_ATTENDANCE = window.EVENT_ATTENDANCE || {}; // eventId -> [attendees] (raffle reads this)
-    // DEMO SEED — remove for production. Gives the ACB event verified attendees so the
-    // draw and turnout counter are populated without manual check-ins. Top cleaner = Dana W. (7).
-    window.EVENT_ATTENDANCE['s6'] = window.EVENT_ATTENDANCE['s6'] || [
-      { userId:'demo1', name:'Priya R.',  anon:false, bags:5,   minutes:65,  verifiedAt:Date.now(), ts:Date.now() },
-      { userId:'demo2', name:'Marcus T.', anon:false, bags:3,   minutes:40,  verifiedAt:Date.now(), ts:Date.now() },
-      { userId:'demo3', name:'Dana W.',   anon:false, bags:7,   minutes:110, verifiedAt:Date.now(), ts:Date.now() },
-      { userId:'demo4', name:'Leo K.',    anon:false, bags:2.5, minutes:30,  verifiedAt:Date.now(), ts:Date.now() },
-      { userId:'demo5', name:'Sam P.',    anon:false, bags:4,   minutes:55,  verifiedAt:Date.now(), ts:Date.now() }
-    ];
 
     const _MONTH_IDX = { JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11 };
 
@@ -6904,7 +6775,7 @@ function saveZonePolygon() {
         }
       }
 
-      // Geofence disabled for the demo — skip the location check (set skipGeofence:false to re-enable).
+      // Location check can be skipped only through SPONSOR_VERIFY.skipGeofence (off).
       if (SPONSOR_VERIFY.skipGeofence) return _verifyPass(null, null);
 
       // 2) Geolocation
@@ -7393,6 +7264,8 @@ function saveZonePolygon() {
           }
         } catch(e) { console.warn('Checkin save error:', e); }
         setTimeout(loadLeaderboard, 500);
+        setTimeout(refreshActivityFromDb, 600);
+        setTimeout(loadPublicData, 800);
       }
       // Update zone meta
       zoneIds.forEach(function(zid) {
@@ -7702,6 +7575,75 @@ function saveZonePolygon() {
     }
 
     // ============================================================
+    // REAL DATA: events, zone status and community totals (readable by guests too)
+    // ============================================================
+    // Everything that comes from the database is escaped before it goes into the page, because names and
+    // event text are typed by people.
+    function _escH(v) {
+      return String(v == null ? '' : v).replace(/[&<>"']/g, function(c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+    function _safeUrl(u) { return /^https?:\/\//i.test(u || '') ? _escH(u) : ''; }
+    const _MONTHS3 = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    function _fmtEventTime(t) {
+      if (!t) return 'Time to be announced';
+      var p = t.split(':'), h = +p[0];
+      return ((h % 12) || 12) + ':' + p[1] + ' ' + (h >= 12 ? 'PM' : 'AM');
+    }
+    function eventFromRow(r) {
+      var d = new Date(r.event_date + 'T12:00:00');
+      var spots = r.spots == null ? null : Number(r.spots);
+      var going = Number(r.going) || 0;
+      return {
+        id: r.id, month: _MONTHS3[d.getMonth()], day: String(d.getDate()), date: r.event_date,
+        zone: _escH(r.name), zoneId: r.zone_id || null, time: _fmtEventTime(r.start_time), duration: _escH(r.duration),
+        spots: spots == null ? 'Open' : Math.max(spots - going, 0), supplies: _escH(r.supplies), meeting: _escH(r.meeting_point),
+        desc: _escH(r.description), sponsored: !!r.sponsored, organizer: _escH(r.organizer), sponsorUrl: _safeUrl(r.sponsor_url),
+        rewardType: r.reward_type, prize: _escH(r.prize), rafflePrize: _escH(r.raffle_prize), topPrize: _escH(r.top_prize),
+        volunteers: Number(r.volunteers) || 0, bags: Number(r.bags) || 0, going: going, isMine: !!r.is_mine
+      };
+    }
+
+    async function loadPublicData() {
+      if (!sb) return;
+      try {
+        const [ev, za, cs] = await Promise.all([sb.rpc('get_events'), sb.rpc('get_zone_activity'), sb.rpc('get_community_stats')]);
+        var today = new Date(); today.setHours(0, 0, 0, 0);
+        if (ev.data) {
+          SCHEDULE.length = 0; PAST_EVENTS.length = 0;
+          ev.data.forEach(function(r) {
+            var e = eventFromRow(r);
+            var isPast = new Date(r.event_date + 'T23:59:59') < today;
+            (isPast ? PAST_EVENTS : SCHEDULE).push(e);
+          });
+          PAST_EVENTS.reverse();
+        }
+        if (za.data || ev.data) {
+          resetZoneMeta();
+          (za.data || []).forEach(function(a) {
+            var m = ZONE_META[a.zone_id]; if (!m || !a.last_cleanup) return;
+            m.lastCleanup = String(a.last_cleanup).slice(0, 10);
+            m.daysSince = Math.max(0, Math.floor((Date.now() - new Date(a.last_cleanup).getTime()) / 86400000));
+          });
+          SCHEDULE.slice().sort(function(x, y) { return x.date.localeCompare(y.date); }).forEach(function(e) {
+            var m = e.zoneId && ZONE_META[e.zoneId];
+            if (m && m.nextEvent.date === 'TBD') m.nextEvent = { date: e.month.charAt(0) + e.month.slice(1).toLowerCase() + ' ' + e.day, time: e.time };
+          });
+        }
+        var stats = cs.data && cs.data[0];
+        var set = function(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
+        set('minutes-count', stats ? Number(stats.total_minutes).toLocaleString() : '0');
+        set('volunteers-count', stats ? Number(stats.volunteers).toLocaleString() : '0');
+        var weekAgo = Date.now() - 7 * 86400000;
+        var zonesWeek = (za.data || []).filter(function(a) { return a.last_cleanup && new Date(a.last_cleanup).getTime() >= weekAgo; }).length;
+        set('zones-week-count', zonesWeek + ' / ' + ZONES.length);
+      } catch (e) { console.warn('Could not load community data:', e); }
+      try { renderSchedule(); renderPastEvents(); if (typeof renderMyEvents === 'function') renderMyEvents(); } catch (e) {}
+      try { renderMapZoneList(); if (leafletMap) drawAllZones(); } catch (e) {}
+    }
+
+    // ============================================================
     // INIT
     // ============================================================
     try { renderSchedule(); } catch(e) { console.warn("renderSchedule:", e); }
@@ -7725,6 +7667,7 @@ function saveZonePolygon() {
       if (typeof supabase !== 'undefined' && supabase.createClient) {
         sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         initAuth();
+        loadPublicData();
       } else {
         console.warn('Supabase not available - running in offline mode');
         renderNavAuth();
@@ -7733,42 +7676,7 @@ function saveZonePolygon() {
       console.warn('Supabase init failed:', e);
       try { renderNavAuth(); } catch(e2) {}
     }
-    try {
-      if (typeof supabase !== 'undefined' && supabase.createClient) {
-        sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        initAuth();
-      } else {
-        console.warn('Supabase not available - running in offline mode');
-        renderNavAuth();
-      }
-    } catch(e) {
-      console.warn('Supabase init failed:', e);
-      try { renderNavAuth(); } catch(e2) {}
-    }
-    try {
-      if (typeof supabase !== 'undefined' && supabase.createClient) {
-        sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        initAuth();
-      } else {
-        console.warn('Supabase not available - running in offline mode');
-        renderNavAuth();
-      }
-    } catch(e) {
-      console.warn('Supabase init failed:', e);
-      try { renderNavAuth(); } catch(e2) {}
-    }
-    try {
-      if (typeof supabase !== 'undefined' && supabase.createClient) {
-        sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        initAuth();
-      } else {
-        console.warn('Supabase not available - running in offline mode');
-        renderNavAuth();
-      }
-    } catch(e) {
-      console.warn('Supabase init failed:', e);
-      try { renderNavAuth(); } catch(e2) {}
-    }</script>
+  </script>
 
 
   <!-- ===== ABOUT PAGE ===== -->
@@ -7854,7 +7762,7 @@ function saveZonePolygon() {
       <h2 style="font-family:'Lexend',sans-serif;font-size:28px;font-weight:800;color:#1a1a2e;margin:0 0 12px">Questions or Ideas?</h2>
       <p style="font-size:16px;color:#5a6472;margin:0 0 24px;line-height:1.7">We'd love to hear from you. Whether you want to host an event, sponsor supplies, or just say hello — reach out any time.</p>
       <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-        <a href="mailto:hello@mindyourblock.org" style="display:inline-block;background:#2d6a4f;color:#fff;font-family:'Lexend',sans-serif;font-weight:700;font-size:16px;padding:14px 32px;border-radius:10px;text-decoration:none">✉️ hello@mindyourblock.org</a>
+        <a href="mailto:zach.carman@gmail.com" style="display:inline-block;background:#2d6a4f;color:#fff;font-family:'Lexend',sans-serif;font-weight:700;font-size:16px;padding:14px 32px;border-radius:10px;text-decoration:none">✉️ zach.carman@gmail.com</a>
         <button onclick="openFeedbackModal()" style="display:inline-block;background:transparent;color:#2d6a4f;border:2px solid #2d6a4f;font-family:'Lexend',sans-serif;font-weight:700;font-size:16px;padding:14px 32px;border-radius:10px;cursor:pointer">💬 Send Feedback</button>
       </div>
     </div>
@@ -7932,7 +7840,7 @@ function saveZonePolygon() {
       <div style="background:#e8f2ed;border-radius:14px;padding:24px 28px">
         <div style="font-family:'Lexend',sans-serif;font-weight:700;font-size:16px;color:#1a1a2e;margin-bottom:6px">Questions about your data?</div>
         <p style="font-size:14px;color:#5a6472;margin:0 0 12px;line-height:1.6">We'll update the date at the top of this page if this policy changes.</p>
-        <a href="mailto:hello@mindyourblock.org" style="color:#2d6a4f;font-weight:700;text-decoration:none">hello@mindyourblock.org</a>
+        <a href="mailto:zach.carman@gmail.com" style="color:#2d6a4f;font-weight:700;text-decoration:none">zach.carman@gmail.com</a>
       </div>
     </div>
   </div>
