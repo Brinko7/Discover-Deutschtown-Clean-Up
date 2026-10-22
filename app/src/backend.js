@@ -183,8 +183,7 @@ export async function sendCheckin(c) {
     } catch (e) {
       continue; // unreadable photo, skip it
     }
-    const ext = blob.type === 'image/png' ? 'png' : blob.type === 'image/webp' ? 'webp' : 'jpg';
-    const path = `${uid}/${c.id}-${i}.${ext}`;
+    const path = photoPath(uid, c.id, i, blob.type);
     const { error } = await supabase.storage
       .from('checkin-photos')
       .upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: true });
@@ -211,7 +210,10 @@ export async function sendCheckin(c) {
   };
   // Safe to repeat: a check-in that already arrived is ignored.
   const { error } = await supabase.from('checkins').upsert(row, { onConflict: 'id', ignoreDuplicates: true });
-  return verdict(error);
+  const result = verdict(error);
+  // The photos now live on the server, so the outbox can drop the phone's copies.
+  if (result === DONE) c.photoPaths = paths;
+  return result;
 }
 
 export async function sendRsvp(eventId, going) {
@@ -257,6 +259,28 @@ export async function fetchZoneActivity() {
   if (!(await ensureSession())) return null;
   const { data, error } = await supabase.rpc('get_zone_activity');
   return error ? null : data;
+}
+
+export async function fetchHotZones() {
+  if (!(await ensureSession())) return null;
+  const { data, error } = await supabase.from('hot_zones').select('zone_id, multiplier');
+  return error ? null : data;
+}
+
+// Short-lived links to your own private check-in photos (for the history sheet).
+// Returns { path: url } for the ones that could be signed.
+export async function photoUrls(paths) {
+  if (!paths?.length || !(await ensureSession())) return {};
+  const { data, error } = await supabase.storage.from('checkin-photos').createSignedUrls(paths, 3600);
+  if (error || !data) return {};
+  return Object.fromEntries(data.filter((d) => d.signedUrl).map((d) => [d.path, d.signedUrl]));
+}
+
+// The storage path a check-in photo is uploaded to. Kept in one place so the
+// phone can drop its local copy and still find the photo on the server.
+export function photoPath(uid, checkinId, index, mime) {
+  const ext = mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg';
+  return `${uid}/${checkinId}-${index}.${ext}`;
 }
 
 // ── Delete everything (required for apps that create accounts) ──

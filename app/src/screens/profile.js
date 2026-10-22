@@ -1,6 +1,6 @@
 import { ZONE_MASCOTS, zoneById, blockById, formatMinutes, ADOPTION_RULES } from '../data.js';
 import { getState, setProfileNames, timeAgo, getRemote, refreshRemote, colorFor, resetAll } from '../store.js';
-import { deleteMyAccount, signOutAccount, currentAccount } from '../backend.js';
+import { deleteMyAccount, signOutAccount, currentAccount, photoUrls } from '../backend.js';
 import { icon, esc, openSheet, closeSheet, toast } from '../ui.js';
 import { icons } from '../icons.js';
 import { tapHaptic, shareApp } from '../native.js';
@@ -58,12 +58,28 @@ function historySheet() {
               <b>${esc(zone?.name || 'Cleanup')}</b>${c.blockNames?.length ? ' · ' + esc(c.blockNames.join(', ')) : ''}<br>
               <span style="color:var(--warm-gray);font-size:12px">${c.minutes} min · +${c.points} pts${c.multiplier > 1 ? ` (${c.multiplier}×)` : ''}</span>
               ${c.photos?.length ? `<div class="photo-strip" style="margin-top:6px">${c.photos.map((p) => `<img class="photo-thumb" src="${p}" style="width:56px;height:56px" alt="Cleanup photo" />`).join('')}</div>` : ''}
+              ${!c.photos?.length && c.photoPaths?.length ? `<div class="photo-strip" style="margin-top:6px">${c.photoPaths.map((p) => `<img class="photo-thumb photo-thumb--loading" data-photo-path="${esc(p)}" style="width:56px;height:56px" alt="Cleanup photo" />`).join('')}</div>` : ''}
             </div>
             <div class="feed-time">${timeAgo(c.ts)}</div>
           </div>`;
       }).join('')
     : `<div class="empty-state"><div class="empty-emoji">🧹</div><p>No check-ins yet — your history will show up here.</p></div>`;
-  openSheet(`<h2 class="sheet-title">Your cleanups</h2><div class="card" style="margin-top:8px">${rows}</div>`, { tall: s.checkins.length > 3 });
+  const wrap = openSheet(`<h2 class="sheet-title">Your cleanups</h2><div class="card" style="margin-top:8px">${rows}</div>`, { tall: s.checkins.length > 3 });
+
+  // Sent photos live only on the server: fetch short-lived links to show them.
+  const imgs = [...wrap.querySelectorAll('[data-photo-path]')];
+  if (!imgs.length) return;
+  photoUrls(imgs.map((img) => img.dataset.photoPath)).then((urls) => {
+    imgs.forEach((img) => {
+      const url = urls[img.dataset.photoPath];
+      if (url) {
+        img.src = url;
+        img.classList.remove('photo-thumb--loading');
+      } else {
+        img.remove(); // offline, or the photo is gone
+      }
+    });
+  });
 }
 
 function editNameSheet(rerender) {

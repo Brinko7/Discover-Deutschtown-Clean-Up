@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { App as CapApp } from '@capacitor/app';
-import { initStore, getState, update, resetAll, syncNow, subscribeRemote, setAccountProfile } from './store.js';
+import { initStore, getState, update, resetAll, syncNow, subscribeRemote, setAccountProfile, claimForAccount } from './store.js';
 import {
   ensureSession, onAuthChange,
   signInAccount, signUpAccount, resetPassword,
@@ -16,7 +16,7 @@ import { tapHaptic } from './native.js';
 import { closeSheet } from './ui.js';
 import { renderHome } from './screens/home.js';
 import { renderMap } from './screens/map.js';
-import { renderCheckin, hasActiveSession } from './screens/checkin.js';
+import { renderCheckin, hasActiveSession, restoreSession, addRestoredPhoto } from './screens/checkin.js';
 import { renderEvents } from './screens/events.js';
 import { renderProfile } from './screens/profile.js';
 
@@ -101,6 +101,7 @@ function showAuth(mode = 'signin') {
   appStarted = false;
   const root = document.getElementById('screen-root');
   document.getElementById('tab-bar').style.display = 'none';
+  document.body.classList.add('no-tabs');
 
   if (mode === 'signup') {
     root.innerHTML = authShell(`
@@ -196,7 +197,15 @@ function showAuth(mode = 'signin') {
 async function startApp() {
   appStarted = true;
   document.getElementById('tab-bar').style.display = '';
-  navigate('home');
+  document.body.classList.remove('no-tabs');
+  await claimForAccount();
+  // A cleanup was running when the app closed: go straight back to it.
+  if (!hasActiveSession() && (await restoreSession())) {
+    navigate('checkin');
+    toast('Your cleanup is still running', { emoji: '🧹' });
+  } else {
+    navigate(hasActiveSession() ? 'checkin' : 'home');
+  }
   syncNow();
   // Fill in the username and optional real name from the account the first time
   // (and after a different account signs in on this phone, initStore already reset state).
@@ -222,6 +231,16 @@ async function boot() {
     } catch (e) { /* not critical */ }
     // Coming back to the app: send anything queued and refresh the shared data.
     CapApp.addListener('resume', () => syncNow());
+    // Android may close the app while the camera is open. The photo then
+    // arrives here on relaunch, after the cleanup was restored from storage.
+    CapApp.addListener('appRestoredResult', async (result) => {
+      if (result.pluginId !== 'Camera' || !result.success || !result.data?.dataUrl) return;
+      if (!hasActiveSession()) await restoreSession();
+      if (addRestoredPhoto(result.data.dataUrl)) {
+        if (currentTab === 'checkin') navigate('checkin');
+        toast('Photo added', { emoji: '📸' });
+      }
+    });
     // Android back button: close sheet or go home before exiting.
     CapApp.addListener('backButton', ({ canGoBack }) => {
       const sheetOpen = document.querySelector('.sheet-wrap');

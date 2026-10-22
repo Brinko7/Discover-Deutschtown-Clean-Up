@@ -60,6 +60,15 @@ delete from auth.users where id = '<user id>';
 - Remove one bad check-in only: `delete from public.checkins where id = '<checkin id>';`
 - Block a single event: set `status` to `rejected`.
 
+## Changing the hot zones
+
+Hot zones earn extra points per minute and show on Home in the app and on the web page.
+
+- Dashboard, Table Editor, `hot_zones`. One row per hot zone: `zone_id` (z1 to z9) and `multiplier` (2 to 5). A multiplier of 3 or more shows as "Hottest zone".
+- Add a row to make a zone hot, edit `multiplier` to change it, delete the row to make it normal again.
+- Phones pick up the change the next time they sync (opening the app or coming back to it). Check-ins already logged keep the points they earned.
+- Zone ids: z1 Allegheny Park, z2 South of East Ohio, z3 Business District, z4 North of East Ohio, z5 Interstate and Ramps, z6 Hospital, z7 North of North St., z8 East of 279, z9 Penn Brewery Area.
+
 ## Things to know
 
 - Guest accounts are cheap to create, so a banned person can come back as a new guest. If that becomes a problem, turn on CAPTCHA (Authentication, Attack Protection) and consider requiring email sign-in for the leaderboard.

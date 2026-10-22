@@ -1,4 +1,4 @@
-import { HOT_SPOTS, ZONES, zoneById, formatMinutes, MIXER, VENMO_HANDLE, DONATIONS_ENABLED } from '../data.js';
+import { hotZoneList, zoneById, formatMinutes, MIXER, VENMO_HANDLE, DONATIONS_ENABLED } from '../data.js';
 import { getState, activityFeed, timeAgo, refreshRemote } from '../store.js';
 import { icon, esc, openSheet, closeSheet, toast } from '../ui.js';
 import { icons } from '../icons.js';
@@ -16,14 +16,9 @@ function initials(name) {
 }
 
 function hotZoneCards() {
-  const rows = [];
-  const add = (ids, tier) => ids.forEach((id) => {
-    const z = zoneById(id);
-    if (z) rows.push({ z, tier });
-  });
-  add(HOT_SPOTS.hottest.ids, HOT_SPOTS.hottest);
-  add(HOT_SPOTS.hot.ids, HOT_SPOTS.hot);
-  return rows
+  return hotZoneList()
+    .map((tier) => ({ z: zoneById(tier.zoneId), tier }))
+    .filter(({ z }) => z)
     .map(({ z, tier }) => `
       <div class="card card--tappable hot-card" data-goto-zone="${z.id}">
         <div class="hot-emoji">${z.emoji}</div>
@@ -130,10 +125,11 @@ export function renderHome(root) {
         </div>
       </div>
 
+      ${hotZoneList().length ? `
       <div class="section">
-        <div class="section-title">🔥 Hot blocks this week</div>
+        <div class="section-title">🔥 Hot zones this week</div>
         ${hotZoneCards()}
-      </div>
+      </div>` : ''}
 
       <div class="section">
         <div class="section-title">Recent activity</div>

@@ -24,17 +24,35 @@ export const ADOPTION_RULES = {
   promptAfterCheckins: 3,
 };
 
-// Rotate these weekly to steer volunteers where they're needed most.
-export const HOT_SPOTS = {
-  hottest: { ids: ['z2'], multiplier: 3, label: 'Hottest block', short: '3× pts' },
-  hot: { ids: ['z3', 'z6'], multiplier: 2, label: 'Hot block', short: '2× pts' },
-};
+// Hot zones steer volunteers where they're needed most. Organizers set them in
+// Supabase (Table Editor, hot_zones); these are only the built-in values used
+// until the first sync on a fresh install.
+let hotZones = { z2: 3, z3: 2, z6: 2 }; // zoneId -> multiplier
+
+function hotTier(multiplier) {
+  return {
+    multiplier,
+    label: multiplier >= 3 ? 'Hottest zone' : 'Hot zone',
+    short: `${multiplier}× pts`,
+  };
+}
+
+// rows: [{ zone_id, multiplier }] from the server (or the cached copy).
+export function setHotZones(rows) {
+  if (!Array.isArray(rows)) return;
+  hotZones = Object.fromEntries(rows.map((r) => [r.zone_id, Number(r.multiplier) || 2]));
+}
+
+// Hot zones, hottest first: [{ zoneId, multiplier, label, short }].
+export function hotZoneList() {
+  return Object.entries(hotZones)
+    .map(([zoneId, m]) => ({ zoneId, ...hotTier(m) }))
+    .sort((a, b) => b.multiplier - a.multiplier);
+}
 
 export function getHotSpot(id) {
-  if (!id) return null;
-  if (HOT_SPOTS.hottest.ids.includes(id)) return HOT_SPOTS.hottest;
-  if (HOT_SPOTS.hot.ids.includes(id)) return HOT_SPOTS.hot;
-  return null;
+  if (!id || !hotZones[id]) return null;
+  return hotTier(hotZones[id]);
 }
 
 export function bestHotSpot(ids) {
@@ -269,6 +287,15 @@ export const DONATIONS_ENABLED = false;
 // Set REQUIRE_LOCATION to false to turn the rule off while testing.
 export const REQUIRE_LOCATION = true;
 export const LOCATION_BUFFER_METERS = 100;
+
+// Points are earned per minute, so a forgotten timer must not run forever.
+// After STILL_CLEANING_MINUTES the app asks "Still cleaning?". Time after an
+// unanswered check is not counted, and no session counts past MAX_SESSION_MINUTES.
+export const STILL_CLEANING_MINUTES = 180;
+export const MAX_SESSION_MINUTES = 360;
+// At check-out, someone farther than this from their zone is asked how long
+// they actually cleaned (walking a few blocks away while cleaning is normal).
+export const FINISH_BUFFER_METERS = 400;
 
 // Left empty on purpose. Set the real account's handle before turning donations on.
 export const VENMO_HANDLE = '';

@@ -84,7 +84,7 @@ export async function getPosition() {
     enableHighAccuracy: true,
     timeout: 12000,
   });
-  return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+  return { lat: pos.coords.latitude, lng: pos.coords.longitude, at: Date.now() };
 }
 
 // Ray-casting point-in-polygon; polygon is [[lat,lng], ...].

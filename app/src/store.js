@@ -5,14 +5,15 @@
 // The phone is the source of truth for your own history, so the app works fully offline.
 // Changes are also queued in an outbox and sent to Supabase (see backend.js) when there is a connection.
 import { Preferences } from '@capacitor/preferences';
-import { zoneById, normalizeEvent, setZoneMeta } from './data.js';
+import { zoneById, normalizeEvent, setZoneMeta, setHotZones } from './data.js';
 import {
   DONE, RETRY,
   ensureSession, currentUserId, sendProfileNames, sendCheckin, sendRsvp, sendAdoption,
-  fetchLeaderboard, fetchFeed, fetchEvents, fetchZoneActivity,
+  fetchLeaderboard, fetchFeed, fetchEvents, fetchZoneActivity, fetchHotZones, photoPath,
 } from './backend.js';
 
 const KEY = 'myb_state_v1';
+const SESSION_KEY = 'myb_session_v1'; // the cleanup in progress, if any
 
 const defaults = () => ({
   profile: {
@@ -26,7 +27,8 @@ const defaults = () => ({
     sessions: 0,
     streakWeeks: 0,
   },
-  checkins: [], // { id, ts, minutes, notes, zoneIds, blockIds, points, multiplier, photos:[dataUrl], anonymous }
+  // photos holds the phone's copies until the check-in is sent; after that only photoPaths (server copies) are kept.
+  checkins: [], // { id, ts, minutes, notes, zoneIds, blockIds, points, multiplier, photos:[dataUrl], photoPaths:[], anonymous }
   rsvps: [], // event ids
   adoptions: [], // { blockId, zoneId, adoptedAt }
   zoneCheckins: {}, // zoneId -> count (drives mascot unlocks)
@@ -34,14 +36,14 @@ const defaults = () => ({
   mascots: [], // unlocked zoneIds
   activity: [], // user-generated activity entries, newest first
   outbox: [], // changes waiting to be sent: { t: 'profile'|'checkin'|'rsvp'|'adopt', ... }
-  cache: { events: [], zones: [] }, // last events and zone activity from the server, so those screens work offline
+  cache: { events: [], zones: [], hot: null }, // last events, zone activity and hot zones from the server, so those screens work offline
 });
 
 let state = defaults();
 const listeners = new Set();
 
 // Shared data from the server (leaderboard, activity feed). Null until the first successful fetch.
-const remote = { leaders: null, feed: null, events: null, zones: null, at: 0 };
+const remote = { leaders: null, feed: null, events: null, zones: null, hot: null, at: 0 };
 const remoteListeners = new Set();
 
 // Check-in ids are UUIDs so the server can ignore a repeated send.
@@ -74,10 +76,23 @@ export async function initStore() {
   remote.events = state.cache?.events || [];
   remote.zones = state.cache?.zones || [];
   setZoneMeta(remote.zones, remote.events);
+  if (state.cache?.hot) setHotZones(state.cache.hot);
+  dropSentPhotos(uid);
   // Sync in the background, never block the app on the network.
   window.addEventListener('online', () => syncNow());
   syncNow();
   return state;
+}
+
+// Called once someone signs in. State saved while signed out has no owner;
+// without claiming it here, the next launch would see an owner mismatch and
+// wipe this account's history and unsent check-ins.
+export async function claimForAccount() {
+  const uid = currentUserId();
+  if (!uid || state.profile.ownerId === uid) return;
+  if (state.profile.ownerId) state = defaults(); // someone else's data: start clean
+  state.profile.ownerId = uid;
+  await persist();
 }
 
 async function persist() {
@@ -145,7 +160,11 @@ export async function flushOutbox() {
         retryTimer = setTimeout(flushOutbox, 30000);
         break;
       }
-      if (op.t === 'checkin' && result === DONE) sentCheckin = true;
+      if (op.t === 'checkin' && result === DONE) {
+        sentCheckin = true;
+        const c = state.checkins.find((x) => x.id === op.id);
+        if (c?.photoPaths) c.photos = [];
+      }
       state.outbox.shift();
       await persist();
     }
@@ -168,20 +187,24 @@ export function subscribeRemote(fn) {
 export async function refreshRemote(force = false) {
   if (!force && Date.now() - remote.at < 30000) return;
   remote.at = Date.now();
-  const [leaders, feed, events, zones] = await Promise.all([
-    fetchLeaderboard(20), fetchFeed(30), fetchEvents(), fetchZoneActivity(),
+  const [leaders, feed, events, zones, hot] = await Promise.all([
+    fetchLeaderboard(20), fetchFeed(30), fetchEvents(), fetchZoneActivity(), fetchHotZones(),
   ]);
   if (leaders) remote.leaders = leaders;
   if (feed) remote.feed = feed;
   if (events) remote.events = events;
   if (zones) remote.zones = zones;
-  if (events || zones) {
+  if (hot) {
+    remote.hot = hot;
+    setHotZones(hot);
+  }
+  if (events || zones || hot) {
     setZoneMeta(remote.zones || [], remote.events || []);
     update((s) => {
-      s.cache = { events: remote.events || [], zones: remote.zones || [] };
+      s.cache = { events: remote.events || [], zones: remote.zones || [], hot: remote.hot || s.cache?.hot || null };
     });
   }
-  if (leaders || feed || events || zones) remoteListeners.forEach((fn) => fn(remote));
+  if (leaders || feed || events || zones || hot) remoteListeners.forEach((fn) => fn(remote));
 }
 
 // Call on start, when the connection returns, and when the app comes back to the foreground.
@@ -196,6 +219,7 @@ export async function syncNow() {
 export async function resetAll() {
   try {
     await Preferences.remove({ key: KEY });
+    await Preferences.remove({ key: SESSION_KEY });
   } catch (e) {
     console.warn('Failed to clear saved state', e);
   }
@@ -205,8 +229,54 @@ export async function resetAll() {
   remote.feed = null;
   remote.events = null;
   remote.zones = null;
+  remote.hot = null;
   remote.at = 0;
   setZoneMeta([], []);
+}
+
+// Check-ins sent before photos moved to the server-only model still carry the
+// phone's copies. They are already uploaded, so swap them for their server paths.
+function dropSentPhotos(uid) {
+  if (!uid) return;
+  const waiting = new Set(state.outbox.filter((op) => op.t === 'checkin').map((op) => op.id));
+  let changed = false;
+  state.checkins.forEach((c) => {
+    if (waiting.has(c.id) || !c.photos?.length || c.photoPaths) return;
+    c.photoPaths = c.photos.map((p, i) => photoPath(uid, c.id, i, (/^data:([^;,]+)/.exec(p) || [])[1]));
+    c.photos = [];
+    changed = true;
+  });
+  if (changed) persist();
+}
+
+// ── Cleanup in progress ──────────────────────────────────────
+// Saved on every change so a cleanup survives the phone closing the app
+// (common while the camera is open, or after a while in the background).
+
+export async function saveActiveSession(session) {
+  try {
+    if (session) {
+      await Preferences.set({ key: SESSION_KEY, value: JSON.stringify({ ...session, ownerId: state.profile.ownerId }) });
+    } else {
+      await Preferences.remove({ key: SESSION_KEY });
+    }
+  } catch (e) {
+    console.warn('Failed to save the cleanup in progress', e);
+  }
+}
+
+// The saved cleanup, if it belongs to the account signed in now.
+export async function loadActiveSession() {
+  try {
+    const { value } = await Preferences.get({ key: SESSION_KEY });
+    if (!value) return null;
+    const saved = JSON.parse(value);
+    if (!saved.startTime || saved.ownerId !== state.profile.ownerId) return null;
+    delete saved.ownerId;
+    return saved;
+  } catch (e) {
+    return null;
+  }
 }
 
 // ── State changes ────────────────────────────────────────────

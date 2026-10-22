@@ -19,6 +19,7 @@ Only the **publishable** key belongs in the repo (`app/src/config.js`). It is sa
 - `migrations/20261021030000_admin_moderation.sql`: private `admin` schema with `admin.user_overview`, `admin.ban_user`, `admin.unban_user`; banned accounts are hidden from the leaderboard and feed. **Applied and verified Oct 21.** See `ADMIN.md`.
 - `migrations/20261021040000_require_accounts.sql`: accounts required (Zach's call, Oct 21, 2026). Adds `username_available()` for the sign-up form and `my_profile()` for the signed-in user's own profile. **Applied and verified Oct 21.**
 - `migrations/20261021050000_profile_names.sql`: sign-up is now username (public display name) + optional first and last name + email + password with confirmation. Adds `profiles.first_name` and `last_name` (private, shown only on your own profile) and returns them from `my_profile()`. **Applied and verified Oct 21.**
+- `migrations/20261022000000_hot_zones.sql`: `hot_zones` table (zone id + point multiplier, readable by everyone, editable only in the dashboard). Replaces the hot zones that were hard-coded in the app and web page, so organizers can rotate them without an app release. Seeded with the old values (z2 3×, z3 2×, z6 2×). **Applied and verified Oct 22** (public read works, writes with the publishable key are refused).
 - `cleanup_guest_accounts.sql`: NOT a migration. One-time, by-hand deletion of the leftover anonymous test accounts, run in the dashboard SQL Editor after the Anonymous provider is off.
 
 Run the files in order. All are safe to re-run.

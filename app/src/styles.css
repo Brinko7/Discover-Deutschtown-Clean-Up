@@ -69,7 +69,12 @@
 html,
 body {
   height: 100%;
+  overflow: hidden;
   overscroll-behavior: none;
+}
+
+html {
+  background: var(--charcoal);
 }
 
 body {
@@ -99,7 +104,17 @@ textarea {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
   padding-bottom: calc(var(--tab-height) + var(--safe-bottom) + 24px);
+}
+
+/* Login / sign-up: no tab bar, so no reserved space and no scrolling past the art */
+body.no-tabs {
+  background: var(--charcoal);
+}
+
+body.no-tabs #screen-root {
+  padding-bottom: 0;
 }
 
 /* ── Screen chrome ─────────────────────────────────────────── */
@@ -499,6 +514,7 @@ textarea {
 .map-screen {
   position: relative;
   height: calc(100dvh - var(--tab-height) - var(--safe-bottom));
+  margin-bottom: calc(-1 * (var(--tab-height) + var(--safe-bottom) + 24px));
   display: flex;
   flex-direction: column;
 }
@@ -818,7 +834,7 @@ textarea {
 /* ── Check-in flow ─────────────────────────────────────────── */
 
 .checkin-screen {
-  min-height: calc(100dvh - var(--tab-height) - var(--safe-bottom));
+  min-height: calc(100dvh - 2 * (var(--tab-height) + var(--safe-bottom)) - 24px);
   display: flex;
   flex-direction: column;
 }
@@ -882,6 +898,33 @@ textarea {
   text-align: center;
   font-variant-numeric: tabular-nums;
   color: var(--charcoal);
+}
+
+.timer-note {
+  text-align: center;
+  font-size: 13px;
+  color: var(--amber);
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.minutes-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 6px 0 16px;
+}
+
+.minutes-stepper .btn {
+  min-width: 72px;
+}
+
+.minutes-value {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
 }
 
 .timer-label {
@@ -1402,6 +1445,7 @@ textarea.text-input {
 /* ── Onboarding ────────────────────────────────────────────── */
 
 .onboard-screen {
+  animation: none;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -1510,4 +1554,9 @@ textarea.text-input {
 
 .empty-state p {
   font-size: 13.5px;
+}
+
+/* History photos that are still loading from the server */
+.photo-thumb--loading {
+  background: var(--green-pale);
 }

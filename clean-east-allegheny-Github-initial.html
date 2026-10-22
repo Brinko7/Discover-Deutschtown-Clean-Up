@@ -3035,7 +3035,7 @@ function closeAbout() {
   <div class="section" id="hot-blocks-section" data-reveal>
     <div style="text-align:center;margin-bottom:28px">
       <div style="font-size:14px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#b5703a;margin-bottom:10px">Bonus Points</div>
-      <h2 style="font-family:'Lexend',sans-serif;font-weight:800;font-size:36px;color:var(--charcoal);line-height:1.1;margin-bottom:14px">Hot blocks this week</h2>
+      <h2 style="font-family:'Lexend',sans-serif;font-weight:800;font-size:36px;color:var(--charcoal);line-height:1.1;margin-bottom:14px">Hot zones this week</h2>
       <p style="font-size:16px;color:var(--warm-gray);max-width:560px;margin:0 auto;line-height:1.7">These areas need the most attention right now — so every minute you clean there is worth extra points. Rotates weekly.</p>
     </div>
     <div id="hot-blocks-list" class="reveal-stagger" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;max-width:900px;margin:0 auto"></div>
@@ -3792,20 +3792,21 @@ function closeAbout() {
       minimumPoints: 10,    // floor for any completed session
     };
 
-    // ── HOT BLOCKS ───────────────────────────────────────────────
+    // ── HOT ZONES ────────────────────────────────────────────────
     // Steer volunteers toward areas that need the most attention by
-    // multiplying the points earned there. Rotate these weekly.
-    const HOT_SPOTS = {
-      hottest: { ids: ['z2'],         multiplier: 3, label: '🔥🔥 Hottest Block', short: '3× pts' },
-      hot:     { ids: ['z3', 'z6'],   multiplier: 2, label: '🔥 Hot Block',      short: '2× pts' },
-    };
+    // multiplying the points earned there. Organizers set them in Supabase
+    // (Table Editor, hot_zones); loadPublicData() replaces these built-in
+    // values, which only show before that first load. zoneId -> multiplier.
+    var HOT_ZONES = { z2: 3, z3: 2, z6: 2 };
 
-    // Returns {multiplier,label,short} for a zone or block id, or null.
+    function hotTier(m) {
+      return { multiplier: m, label: m >= 3 ? '🔥🔥 Hottest Zone' : '🔥 Hot Zone', short: m + '× pts' };
+    }
+
+    // Returns {multiplier,label,short} for a zone id, or null.
     function getHotSpot(id) {
-      if (!id) return null;
-      if (HOT_SPOTS.hottest.ids.indexOf(id) >= 0) return HOT_SPOTS.hottest;
-      if (HOT_SPOTS.hot.ids.indexOf(id) >= 0) return HOT_SPOTS.hot;
-      return null;
+      if (!id || !HOT_ZONES[id]) return null;
+      return hotTier(HOT_ZONES[id]);
     }
 
     // Best (highest) hot multiplier across everything cleaned this session.
@@ -5974,7 +5975,7 @@ function saveZonePolygon() {
       return userAdoptions.some(function(a) { return a.blockId === blockId; });
     }
 
-    // Renders the "Hot blocks this week" cards from HOT_SPOTS config
+    // Renders the "Hot zones this week" cards from HOT_ZONES
     function renderHotBlocks() {
       var el = document.getElementById('hot-blocks-list');
       if (!el) return;
@@ -5989,10 +5990,12 @@ function saveZonePolygon() {
         return null;
       }
       var cards = [];
-      [HOT_SPOTS.hottest, HOT_SPOTS.hot].forEach(function(tier) {
-        tier.ids.forEach(function(id) {
+      Object.keys(HOT_ZONES)
+        .sort(function(a, b) { return HOT_ZONES[b] - HOT_ZONES[a]; })
+        .forEach(function(id) {
           var info = nameFor(id);
           if (!info) return;
+          var tier = hotTier(HOT_ZONES[id]);
           var hottest = tier.multiplier >= 3;
           cards.push(
             '<div class="hot-card' + (hottest ? ' hottest' : '') + '" onclick="navTo(\'map\');showZoneDetail(\'' + info.zoneId + '\')">' +
@@ -6003,8 +6006,9 @@ function saveZonePolygon() {
             '</div>'
           );
         });
-      });
       el.innerHTML = cards.join('');
+      var section = document.getElementById('hot-blocks-section');
+      if (section) section.style.display = cards.length ? '' : 'none';
     }
 
     // Soonest upcoming event for a zone, matched by id or name.
@@ -7631,7 +7635,12 @@ function saveZonePolygon() {
     async function loadPublicData() {
       if (!sb) return;
       try {
-        const [ev, za, cs] = await Promise.all([sb.rpc('get_events'), sb.rpc('get_zone_activity'), sb.rpc('get_community_stats')]);
+        const [ev, za, cs, hz] = await Promise.all([sb.rpc('get_events'), sb.rpc('get_zone_activity'), sb.rpc('get_community_stats'), sb.from('hot_zones').select('zone_id, multiplier')]);
+        if (hz.data) {
+          HOT_ZONES = {};
+          hz.data.forEach(function(r) { HOT_ZONES[r.zone_id] = Number(r.multiplier) || 2; });
+          try { renderHotBlocks(); } catch(e) { console.warn('renderHotBlocks:', e); }
+        }
         var today = new Date(); today.setHours(0, 0, 0, 0);
         if (ev.data) {
           SCHEDULE.length = 0; PAST_EVENTS.length = 0;
