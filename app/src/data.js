@@ -263,6 +263,13 @@ export const MIXER = {
 // Flip to true after the nonprofit exists and VENMO_HANDLE is its real account.
 export const DONATIONS_ENABLED = false;
 
+// You must be at the cleanup to start it. Starting a cleanup reads your GPS
+// position and requires it to be inside the zone you chose, or within
+// LOCATION_BUFFER_METERS of its edge (GPS drifts, especially between buildings).
+// Set REQUIRE_LOCATION to false to turn the rule off while testing.
+export const REQUIRE_LOCATION = true;
+export const LOCATION_BUFFER_METERS = 100;
+
 // Left empty on purpose. Set the real account's handle before turning donations on.
 export const VENMO_HANDLE = '';
 

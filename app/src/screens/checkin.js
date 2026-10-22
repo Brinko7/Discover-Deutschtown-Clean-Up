@@ -4,11 +4,12 @@
 import {
   ZONES, blocksForZone, blockById, zoneById,
   getHotSpot, computeScore, ADOPTION_RULES, ZONE_MASCOTS,
+  ZONE_POLYGONS, REQUIRE_LOCATION, LOCATION_BUFFER_METERS,
 } from '../data.js';
 import { getState, recordCheckin, adoptedBlockIds, adoptBlock, uuid } from '../store.js';
 import { icon, esc, openSheet, closeSheet, toast, celebrate } from '../ui.js';
 import { icons } from '../icons.js';
-import { tapHaptic, successHaptic, takePhoto, getPosition, locateArea } from '../native.js';
+import { tapHaptic, successHaptic, takePhoto, getPosition, locateArea, distanceToPolygonMeters } from '../native.js';
 import { navigate, refreshTabBar } from '../main.js';
 
 // Module-level so the session survives tab switches.
@@ -114,8 +115,43 @@ function renderStart(root, params) {
         toast('Location unavailable — check app permissions', { emoji: '📍' });
       }
     });
-    root.querySelector('#btn-start').addEventListener('click', () => {
+    root.querySelector('#btn-start').addEventListener('click', async (e) => {
       if (!zoneId) return;
+      const startBtn = e.currentTarget;
+      // You have to be at the cleanup to start it: your GPS position must be
+      // inside the chosen zone, or within a small buffer of its edge.
+      if (REQUIRE_LOCATION) {
+        const label = startBtn.innerHTML;
+        startBtn.disabled = true;
+        startBtn.textContent = 'Checking your location…';
+        const restore = () => {
+          startBtn.disabled = false;
+          startBtn.innerHTML = label;
+        };
+        let pos;
+        try {
+          pos = await getPosition();
+        } catch (err) {
+          restore();
+          toast('We need your location to start a cleanup. Turn on location for this app in your phone settings and try again.', { emoji: '📍' });
+          return;
+        }
+        const zoneName = zoneById(zoneId)?.name || 'that zone';
+        const away = distanceToPolygonMeters(pos.lat, pos.lng, ZONE_POLYGONS[zoneId]);
+        if (away > LOCATION_BUFFER_METERS) {
+          restore();
+          const found = locateArea(pos.lat, pos.lng);
+          const where = away === Infinity ? '' : away < 1000 ? `about ${Math.round(away / 10) * 10} m` : `about ${(away / 1000).toFixed(1)} km`;
+          toast(
+            found.zone && found.zone.id !== zoneId
+              ? `You're in ${found.zone.name}, not ${zoneName}. Pick ${found.zone.name} to start here.`
+              : `You're ${where ? where + ' ' : ''}from ${zoneName}. Head over, then start your cleanup.`,
+            { emoji: '🧭' },
+          );
+          return;
+        }
+        restore();
+      }
       successHaptic();
       session = {
         startTime: Date.now(),

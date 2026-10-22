@@ -119,6 +119,34 @@ function polygonCentroid(polygon) {
   return [lat / polygon.length, lng / polygon.length];
 }
 
+// Distance in meters from a point to the nearest edge of a polygon ([[lat,lng], ...]).
+// 0 when the point is inside. Uses a flat local projection, which is accurate
+// to well under a meter at neighborhood scale.
+export function distanceToPolygonMeters(lat, lng, polygon) {
+  if (!polygon || polygon.length < 3) return Infinity;
+  if (pointInPolygon(lat, lng, polygon)) return 0;
+  const mPerDegLat = 111320;
+  const mPerDegLng = 111320 * Math.cos((lat * Math.PI) / 180);
+  const px = 0;
+  const py = 0;
+  let best = Infinity;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const ax = (polygon[j][1] - lng) * mPerDegLng;
+    const ay = (polygon[j][0] - lat) * mPerDegLat;
+    const bx = (polygon[i][1] - lng) * mPerDegLng;
+    const by = (polygon[i][0] - lat) * mPerDegLat;
+    const dx = bx - ax;
+    const dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    let t = len2 ? ((px - ax) * dx + (py - ay) * dy) / len2 : 0;
+    t = Math.max(0, Math.min(1, t));
+    const cx = ax + t * dx;
+    const cy = ay + t * dy;
+    best = Math.min(best, Math.hypot(px - cx, py - cy));
+  }
+  return best;
+}
+
 // Finds where the user is standing: exact polygon hit first,
 // otherwise the nearest zone within 400m of its centroid.
 export function locateArea(lat, lng) {
