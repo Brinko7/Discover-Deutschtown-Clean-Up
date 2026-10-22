@@ -17,7 +17,7 @@ Only the **publishable** key belongs in the repo (`app/src/config.js`). It is sa
 - `migrations/20261021020000_real_data_views.sql`: public aggregate functions that replace the demo content (`get_events`, `get_zone_activity`, `get_community_stats`, host-only `get_event_attendees`). **Applied and verified Oct 21.**
 
 - `migrations/20261021030000_admin_moderation.sql`: private `admin` schema with `admin.user_overview`, `admin.ban_user`, `admin.unban_user`; banned accounts are hidden from the leaderboard and feed. **Applied and verified Oct 21.** See `ADMIN.md`.
-- `migrations/20261021040000_require_accounts.sql`: accounts required (Zach's call, Oct 21, 2026). Adds `username_available()` for the sign-up form and `my_profile()` for the signed-in user's own profile. **Written Oct 21, not yet applied.**
+- `migrations/20261021040000_require_accounts.sql`: accounts required (Zach's call, Oct 21, 2026). Adds `username_available()` for the sign-up form and `my_profile()` for the signed-in user's own profile. **Applied and verified Oct 21.**
 - `cleanup_guest_accounts.sql`: NOT a migration. One-time, by-hand deletion of the leftover anonymous test accounts, run in the dashboard SQL Editor after the Anonymous provider is off.
 
 Run the files in order. All are safe to re-run.
