@@ -25,10 +25,10 @@ select * from admin.user_overview where created_at > now() - interval '7 days' o
 -- Most active, in case points look inflated (points are calculated on the phone)
 select id, full_name, kind, checkins, points from admin.user_overview order by points desc limit 20;
 
--- Suspicious check-ins: long sessions or lots of points for little time
-select c.id, p.full_name, c.minutes, c.bags, c.points, c.created_at
+-- Suspicious check-ins: very long sessions or lots of points for little time
+select c.id, p.full_name, c.minutes, c.points, c.created_at
 from public.checkins c join public.profiles p on p.id = c.user_id
-where c.minutes > 480 or c.points > c.minutes * 6 or c.bags > 30
+where c.minutes > 480 or c.points > c.minutes * 6
 order by c.created_at desc;
 
 -- Names to review (edit the words to taste)

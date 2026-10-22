@@ -42,7 +42,7 @@ Status: **the app is ready to archive. It is waiting on the Apple Developer enro
 - **Description:**
   Mind Your Block is the neighborhood cleanup companion for Deutschtown, Pittsburgh.
 
-  • Check in when you start cleaning and track your time, bags and photos
+  • Check in when you start cleaning and track your time and photos
   • Find your zone and block automatically with GPS, or pick one by hand
   • Earn points, with bonus multipliers on the blocks that need help most
   • Collect a mascot badge for every zone you clean

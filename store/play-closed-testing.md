@@ -23,7 +23,7 @@ Play will not open closed testing until every task under "Finish setting up your
 
 ### Data safety draft (the app now sends data to Supabase)
 
-What the phone app sends to its private Supabase database: a guest account id, the display name, check-ins (zone and block, minutes, bags, points, optional note), RSVPs, adopted blocks, and optional check-in photos.
+What the phone app sends to its private Supabase database: a guest account id, the display name, check-ins (zone and block, minutes, points, optional note), RSVPs, adopted blocks, and optional check-in photos.
 
 | Data | Collected | Why | Shared | Optional |
 | --- | --- | --- | --- | --- |
@@ -52,7 +52,7 @@ What the phone app sends to its private Supabase database: a guest account id, t
 - **Full description (draft):**
   Mind Your Block is the neighborhood cleanup companion for Deutschtown.
 
-  - Check in when you start cleaning and track your time, bags, and photos.
+  - Check in when you start cleaning and track your time and photos.
   - Find your zone and block automatically with GPS, or pick one by hand.
   - Earn points, with bonus multipliers on the blocks that need help most.
   - Collect a mascot badge for every zone you clean.

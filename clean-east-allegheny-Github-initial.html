@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-10-21 22:30:00 -->
+<!-- VERSION: 2026-10-21 23:00:00 -->
 <!-- 
   SUPABASE SCHEMA ADDITIONS FOR BLOCKS:
   
@@ -3026,7 +3026,7 @@ function closeAbout() {
       <div class="hiw-card" data-donation style="background:#e8f2ed">
         <div class="hiw-icon" style="background:#2d6a4f">💚</div>
         <div class="hiw-title">Donate</div>
-        <div class="hiw-desc">Even a small donation helps fund bags, gloves, and events. 100% stays in the neighborhood.</div>
+        <div class="hiw-desc">Even a small donation helps fund supplies, gloves, and events. 100% stays in the neighborhood.</div>
         <a href="#donate-section" class="hiw-btn" style="border-color:#2d6a4f;color:#2d6a4f;text-decoration:none;display:inline-block">Donate →</a>
       </div>
     </div>
@@ -3471,22 +3471,6 @@ function closeAbout() {
             </div>
           </div>
 
-          <!-- Bags collected (tracked, but minutes drive your score) -->
-          <div class="form-group">
-            <label class="form-label">Bags collected <span style="font-weight:400;color:var(--warm-gray)">(tracked — minutes drive your score)</span></label>
-            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-              <button onclick="ciAdjustBags(-1)" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--charcoal)">−</button>
-              <input id="ci-bags" type="number" min="0" value="0" class="form-input" style="width:80px;text-align:center;font-size:22px;font-weight:700;padding:6px">
-              <button onclick="ciAdjustBags(1)" style="width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--charcoal)">+</button>
-              <select id="ci-bags-partial" class="form-select" style="width:auto;font-size:14px;padding:8px 10px">
-                <option value="0">+ no partial bag</option>
-                <option value="0.25">+ ¼ bag</option>
-                <option value="0.5">+ ½ bag</option>
-                <option value="0.75">+ ¾ bag</option>
-              </select>
-            </div>
-          </div>
-
           <!-- Notes -->
           <div class="form-group">
             <label class="form-label">Notes <span style="font-weight:400;color:var(--warm-gray)">(safety issues, things left to clean)</span></label>
@@ -3713,7 +3697,7 @@ function closeAbout() {
           </div>
         </div>
 
-        <div class="form-group"><label class="form-label">Supplies Provided</label><input class="form-input" id="ev-supplies" placeholder="e.g. Bags, Gloves &amp; Grabbers"></div>
+        <div class="form-group"><label class="form-label">Supplies Provided</label><input class="form-input" id="ev-supplies" placeholder="e.g. Gloves &amp; Grabbers"></div>
         <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="ev-desc" placeholder="Tell volunteers what to expect…"></textarea></div>
 
         <!-- ── BUSINESS SPONSOR TOGGLE ── -->
@@ -3731,8 +3715,6 @@ function closeAbout() {
             <div class="form-group"><label class="form-label">Reward Type</label>
               <select class="form-select" id="ev-reward-type" onchange="updatePrizeFields()">
                 <option value="raffle">Raffle — random draw among everyone who showed up</option>
-                <option value="top">Top Cleaner — prize for whoever collected the most</option>
-                <option value="both">Both — a raffle and a top-cleaner prize</option>
               </select>
             </div>
             <div class="form-group" id="ev-raffle-prize-group"><label class="form-label">Raffle prize <span class="req">*</span></label>
@@ -3741,7 +3723,7 @@ function closeAbout() {
             </div>
             <div class="form-group" id="ev-top-prize-group" style="display:none"><label class="form-label">Top cleaner prize <span class="req">*</span></label>
               <input class="form-input" id="ev-top-prize" placeholder="e.g. a free pint">
-              <div style="font-size:14px;color:var(--warm-gray);margin-top:4px">Goes to whoever collects the most bags.</div>
+              <div style="font-size:14px;color:var(--warm-gray);margin-top:4px">Drawn at random among everyone who showed up.</div>
             </div>
           </div>
         </div>
@@ -3804,8 +3786,7 @@ function closeAbout() {
     };
 
     // ── SCORING ──────────────────────────────────────────────────
-    // Minutes are the headline metric. Bags are still recorded (incl. partial
-    // bags) but no longer drive points or the leaderboard.
+    // Minutes are the only measure: they drive points and the leaderboard.
     const SCORING = {
       pointsPerMinute: 2,   // base points earned per minute cleaned
       minimumPoints: 10,    // floor for any completed session
@@ -4218,7 +4199,6 @@ function closeAbout() {
                 <span>🕐 ${ev.time}</span>
                 ${ev.duration ? `<span>⏳ ${ev.duration}</span>` : ''}
                 <span>👥 ${ev.volunteers} volunteer${ev.volunteers === 1 ? '' : 's'}</span>
-                <span>🗑️ ${ev.bags} bags</span>
               </div>
             </div>
             <div class="past-event-badge">✅ Completed</div>
@@ -4350,7 +4330,7 @@ function closeAbout() {
       const pct = nextPts ? Math.round((myPts / nextPts) * 100) : 100;
 
       const motivations = [
-        "Every bag you collect climbs you higher. 🛍️",
+        "Every minute you clean climbs you higher. ⏱️",
         "Keep your streak alive. Show up this week! 🔥",
         "Your neighbors are counting on you. 💪",
         "One more cleanup could move you up a spot!",
@@ -4544,19 +4524,40 @@ function closeAbout() {
         var res = await sb.auth.updateUser({ password: pw });
         if (res.error) { err(res.error.message); return; }
         document.body.removeChild(overlay);
+        try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) {}
         await sb.auth.signOut();
         showToast('Password updated. Sign in with your new password.');
       });
     }
 
     async function initAuth() {
-      const { data: { session } } = await sb.auth.getSession();
-      if (session) await handleSession(session);
+      // A password reset link arrives with the recovery token in the address
+      // bar (#access_token=...&type=recovery). The client reads it while it
+      // starts up, which can happen BEFORE a listener is attached, so also
+      // look at the address ourselves. Without this the visitor was just
+      // signed in silently and never saw the set-a-new-password form.
+      var hash = window.location.hash || '';
+      var isRecovery = /(^|[#&])type=recovery(&|$)/.test(hash);
+      var linkError = /error_description=([^&]+)/.exec(hash);
+      var recoveryShown = false;
+      var showReset = function() {
+        if (recoveryShown) return;
+        recoveryShown = true;
+        showPasswordReset();
+      };
+      // Listen first so the event cannot be missed.
       sb.auth.onAuthStateChange(async (_event, session) => {
-        if (_event === 'PASSWORD_RECOVERY') { showPasswordReset(); return; }
+        if (_event === 'PASSWORD_RECOVERY') { showReset(); return; }
+        if (recoveryShown) return; // stay signed out of the page until the new password is saved
         if (session) { await handleSession(session); }
         else { currentUser = null; currentProfile = null; userRsvps = new Set(); resetMyData(); renderNavAuth(); renderLbSidebar(); renderDashboard(); renderSchedule(); loadLeaderboard(); loadActivityFeed(); }
       });
+      if (linkError) {
+        showToast('That reset link is invalid or has expired. Request a new one with Forgot password.');
+      }
+      const { data: { session } } = await sb.auth.getSession();
+      if (isRecovery && session) { showReset(); return; }
+      if (session) await handleSession(session);
     }
 
 
@@ -4576,7 +4577,6 @@ function closeAbout() {
       var rows = _myCheckinRows;
       currentProfile.points = rows.reduce(function(n, r) { return n + (r.points || 0); }, 0);
       currentProfile.minutes_cleaned = rows.reduce(function(n, r) { return n + (r.minutes || 0); }, 0);
-      currentProfile.bags_collected = rows.reduce(function(n, r) { return n + Number(r.bags || 0); }, 0);
       var evs = {}; rows.forEach(function(r) { if (r.event_id) evs[r.event_id] = 1; });
       currentProfile.events_attended = Object.keys(evs).length;
       // Streak: consecutive weeks with a named check-in, counting back from this week or last week.
@@ -4592,7 +4592,7 @@ function closeAbout() {
       resetMyData();
       if (!sb || !currentUser) return;
       try {
-        var ci = await sb.from('checkins').select('created_at,minutes,bags,points,event_id,zone_ids,block_ids,anonymous');
+        var ci = await sb.from('checkins').select('created_at,minutes,points,event_id,zone_ids,block_ids,anonymous');
         _myCheckinRows = ci.data || [];
         _myCheckinRows.forEach(function(r) {
           (r.zone_ids || []).forEach(function(z) { userZoneCheckins[z] = (userZoneCheckins[z] || 0) + 1; });
@@ -4880,7 +4880,7 @@ function closeAbout() {
           return {
             id: r.is_you && currentUser ? currentUser.id : 'lb-' + r.rank,
             username: _escH(r.username), full_name: _escH(r.full_name), avatar_url: _safeUrl(r.avatar_url) || null,
-            points: Number(r.points), bags_collected: Number(r.bags_collected),
+            points: Number(r.points),
             events_attended: Number(r.events_attended), streak_weeks: r.streak_weeks,
             neighborhood: _escH(r.neighborhood)
           };
@@ -6201,7 +6201,7 @@ function saveZonePolygon() {
         ev._attendeesLoaded = true;
         sb.rpc('get_event_attendees', { p_event: ev.id }).then(function(res) {
           window.EVENT_ATTENDANCE[ev.id] = (res.data || []).map(function(a, i) {
-            return { userId: 'att-' + i, name: a.display_name, anon: a.anonymous, bags: Number(a.bags) || 0,
+            return { userId: 'att-' + i, name: a.display_name, anon: a.anonymous,
                      minutes: a.minutes, verifiedAt: new Date(a.checked_in_at).getTime(), ts: new Date(a.checked_in_at).getTime() };
           });
           var _edp = document.getElementById('event-detail-page'); if (_edp && _edp.style.display !== 'none') openEventDetail(eventId);
@@ -6322,14 +6322,13 @@ function saveZonePolygon() {
     // ============================================================
     let _drawEvent = null;
 
-    // One entry per person; bags summed across their check-ins
+    // One entry per person, summed across their check-ins
     function aggregateAttendees(ev) {
       var raw = (window.EVENT_ATTENDANCE && window.EVENT_ATTENDANCE[ev.id]) || [];
       var byKey = {};
       raw.forEach(function(a) {
         var key = a.userId || ('name:' + (a.name || 'Guest'));
-        if (!byKey[key]) byKey[key] = { name: a.name || 'Anonymous volunteer', bags: 0, minutes: 0, entries: 0 };
-        byKey[key].bags += (parseFloat(a.bags) || 0);
+        if (!byKey[key]) byKey[key] = { name: a.name || 'Anonymous volunteer', minutes: 0, entries: 0 };
         byKey[key].minutes += (parseInt(a.minutes, 10) || 0);
         byKey[key].entries += 1;
       });
@@ -6343,28 +6342,15 @@ function saveZonePolygon() {
     }
 
     function drawDescription(ev) {
-      var rt = ev.rewardType || 'raffle';
-      if (rt === 'both') return 'Random raffle winner + top cleaner by minutes cleaned.';
-      if (rt === 'top') return 'Top cleaner — whoever cleaned the most minutes.';
-      return 'Random draw — every verified attendee has an equal shot.';
+      return 'Random draw: every verified attendee has an equal shot.';
     }
 
+    // Every prize draw picks at random from everyone who took part.
     function performDraw(ev) {
       var people = aggregateAttendees(ev);
       if (!people.length) return null;
-      var rt = ev.rewardType || 'raffle';
-      var result = { drawnAt: Date.now() };
-      if (rt === 'raffle' || rt === 'both') {
-        var w = people[Math.floor(Math.random() * people.length)];
-        result.raffle = { name: w.name, bags: w.bags, code: voucherCode() };
-      }
-      if (rt === 'top' || rt === 'both') {
-        var maxMin = Math.max.apply(null, people.map(function(p) { return p.minutes; }));
-        var top = people.filter(function(p) { return p.minutes === maxMin; });
-        var winner = top[Math.floor(Math.random() * top.length)];
-        result.top = { name: winner.name, minutes: winner.minutes, bags: winner.bags, code: voucherCode(), tie: top.length > 1, tieCount: top.length };
-      }
-      return result;
+      var w = people[Math.floor(Math.random() * people.length)];
+      return { drawnAt: Date.now(), raffle: { name: w.name, code: voucherCode() } };
     }
 
     function winnerCardHTML(title, name, code, sub) {
@@ -6380,11 +6366,8 @@ function saveZonePolygon() {
     function drawResultsHTML(ev) {
       var d = ev._draw; if (!d) return '';
       var rPrize = ev.rafflePrize || ev.prize || '';
-      var tPrize = ev.topPrize || '';
       var html = '';
       if (d.raffle) html += winnerCardHTML('🎉 Raffle winner', d.raffle.name, d.raffle.code, rPrize);
-      if (d.top) html += winnerCardHTML('🏅 Top cleaner' + (d.top.tie ? ' (tie broken randomly)' : ''),
-        d.top.name, d.top.code, (tPrize ? tPrize + ' · ' : '') + formatMinutes(d.top.minutes) + ' cleaned');
       return html;
     }
 
@@ -6422,10 +6405,9 @@ function saveZonePolygon() {
       const people = aggregateAttendees(ev);
       const result = performDraw(ev);
       const rt = ev.rewardType || 'raffle';
-      const hasRaffle = (rt === 'raffle' || rt === 'both');
       const body = document.getElementById('draw-body');
       body.innerHTML = '<div style="text-align:center;padding:24px 0">' +
-        '<div style="font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--warm-gray);margin-bottom:14px">' + (hasRaffle ? 'Drawing…' : 'Tallying bags…') + '</div>' +
+        '<div style="font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--warm-gray);margin-bottom:14px">' + 'Drawing…' + '</div>' +
         '<div id="draw-roll" style="font-family:\'Lexend\',sans-serif;font-weight:800;font-size:26px;color:var(--green);min-height:34px">—</div></div>';
       const roll = document.getElementById('draw-roll');
       const names = people.map(p => p.name);
@@ -6441,7 +6423,6 @@ function saveZonePolygon() {
               raffle_code: result.raffle ? result.raffle.code : null,
               top_cleaner: result.top ? result.top.name : null,
               top_minutes: result.top ? result.top.minutes : null,
-              top_bags: result.top ? result.top.bags : null,
               top_code: result.top ? result.top.code : null,
               drawn_by: currentUser.id
             });
@@ -6598,12 +6579,11 @@ function saveZonePolygon() {
         var icon = isAdoptEntry ? '🏠' : '✅';
         var action = isAdoptEntry ? 'adopted' : 'cleaned';
         var location = a.blockName ? (a.blockName + ' &bull; ' + a.zoneName) : a.zoneName;
-        var bagsStr = !isAdoptEntry && a.bags > 0 ? ' &bull; ' + a.bags + ' bag' + (a.bags !== 1 ? 's' : '') : '';
         var freshMinutes = (Date.now() - a.ts) < 30*60000;
         return '<div class="activity-item">' +
           '<div class="activity-avatar" style="background:' + (a.anonymous ? 'var(--warm-gray)' : a.color) + '">' + (a.anonymous ? '<span style="font-size:16px">?</span>' : initials) + '</div>' +
           '<div class="activity-body">' +
-            '<div class="activity-line"><span class="activity-name">' + name + '</span> ' + icon + ' ' + action + ' <span class="activity-zone">' + location + '</span>' + bagsStr + '</div>' +
+            '<div class="activity-line"><span class="activity-name">' + name + '</span> ' + icon + ' ' + action + ' <span class="activity-zone">' + location + '</span></div>' +
             '<div class="activity-time">' + timeAgo(a.ts) + (freshMinutes ? ' <span class="activity-fresh">fresh</span>' : '') + '</div>' +
           '</div>' +
           (freshMinutes ? '<div class="activity-dot-live"></div>' : '') +
@@ -6635,7 +6615,7 @@ function saveZonePolygon() {
           ACTIVITY_FEED.push({
             id: f.id, type: 'checkin', userId: null, name: _escH(f.display_name), anonymous: f.display_name === 'Anonymous',
             zoneId: f.zone_id, zoneName: (ZONES.find(function(z) { return z.id === f.zone_id; }) || {}).name || '',
-            blockName: _escH(f.block_name), bags: Number(f.bags) || 0, ts: new Date(f.created_at).getTime(), color: '#2d6a4f'
+            blockName: _escH(f.block_name), ts: new Date(f.created_at).getTime(), color: '#2d6a4f'
           });
         });
         renderActivityFeed();
@@ -7181,13 +7161,9 @@ function saveZonePolygon() {
         if (_ciEventContext) {
           evBanner.style.display = 'block';
           evBanner.innerHTML = '<div class="ci-verified-banner">✓ <span><strong>Verified at ' + _ciEventContext.eventName + '</strong>' +
-            (_ciEventContext.prize ? ' — logging your bags enters you for ' + _ciEventContext.prize : '') + '</span></div>';
+            (_ciEventContext.prize ? ' — checking in enters you for ' + _ciEventContext.prize : '') + '</span></div>';
         } else { evBanner.style.display = 'none'; evBanner.innerHTML = ''; }
       }
-      const bagsEl = document.getElementById('ci-bags');
-      if (bagsEl) bagsEl.value = '0';
-      const partialEl = document.getElementById('ci-bags-partial');
-      if (partialEl) partialEl.value = '0';
       const notesEl = document.getElementById('ci-notes');
       if (notesEl) notesEl.value = '';
       const durEl = document.getElementById('ci-duration-edit');
@@ -7215,12 +7191,6 @@ function saveZonePolygon() {
       if (secs === 0) ciUpdatePointsPreview();
     }
 
-    function ciAdjustBags(delta) {
-      const el = document.getElementById('ci-bags');
-      if (!el) return;
-      el.value = Math.max(0, (parseInt(el.value) || 0) + delta);
-    }
-
     function ciAddPhotos(input) {
       const files = Array.from(input.files);
       const previews = document.getElementById('ci-photo-previews');
@@ -7241,9 +7211,6 @@ function saveZonePolygon() {
     // ── CHECKOUT ──────────────────────────────────────────────────
     async function checkOut() {
       if (_ciTimer) { clearInterval(_ciTimer); _ciTimer = null; }
-      const wholeBags = parseInt(document.getElementById('ci-bags').value) || 0;
-      const partial = parseFloat((document.getElementById('ci-bags-partial') || {}).value) || 0;
-      const bags = wholeBags + partial;   // e.g. 2.5 = two full bags + a half
       const notes = document.getElementById('ci-notes').value.trim();
       const durationEdit = parseInt(document.getElementById('ci-duration-edit').value);
       const elapsedMin = durationEdit || Math.max(1, Math.round((Date.now() - _ciStartTime) / 60000));
@@ -7269,7 +7236,6 @@ function saveZonePolygon() {
         zoneId: zoneIds[0] || '',
         zoneName: primaryZone ? primaryZone.name : '',
         blockName: blockIds.length ? (_ciSelectedAreas.find(function(a){return a.id===blockIds[0];})||{}).name : '',
-        bags: bags,
         notes: notes,
         durationMin: elapsedMin,
         ts: Date.now(),
@@ -7284,7 +7250,7 @@ function saveZonePolygon() {
         const arr = (window.EVENT_ATTENDANCE[evCtx.eventId] = window.EVENT_ATTENDANCE[evCtx.eventId] || []);
         arr.push({
           userId: currentUser ? currentUser.id : null,
-          name: name, anon: anon, bags: bags, minutes: elapsedMin,
+          name: name, anon: anon, minutes: elapsedMin,
           verifiedAt: evCtx.verifiedAt, ts: Date.now()
         });
       }
@@ -7307,14 +7273,14 @@ function saveZonePolygon() {
           const ciRow = {
             user_id: currentUser.id, zone_ids: zoneIds, block_ids: blockIds,
             block_names: blockIds.map(function(bid) { var b = BLOCKS.find(function(x) { return x.id === bid; }); return b ? b.name : bid; }),
-            bags: bags, minutes: Math.min(Math.max(Math.round(elapsedMin), 0), 1440),
+            minutes: Math.min(Math.max(Math.round(elapsedMin), 0), 1440),
             points: Math.round(pts), notes: (notes || '').slice(0, 1000), anonymous: anon
           };
           if (evCtx) { ciRow.event_id = evCtx.eventId; ciRow.verified = true; }
           if (sb) {
             const { error: ciErr } = await sb.from('checkins').insert(ciRow);
             if (ciErr) throw ciErr;
-            _myCheckinRows.push({ created_at: new Date().toISOString(), minutes: ciRow.minutes, bags: ciRow.bags, points: ciRow.points,
+            _myCheckinRows.push({ created_at: new Date().toISOString(), minutes: ciRow.minutes, points: ciRow.points,
               event_id: ciRow.event_id || null, zone_ids: zoneIds, block_ids: blockIds, anonymous: anon });
             recomputeMyStats();
             renderDashboard();
@@ -7658,7 +7624,7 @@ function saveZonePolygon() {
         spots: spots == null ? 'Open' : Math.max(spots - going, 0), supplies: _escH(r.supplies), meeting: _escH(r.meeting_point),
         desc: _escH(r.description), sponsored: !!r.sponsored, organizer: _escH(r.organizer), sponsorUrl: _safeUrl(r.sponsor_url),
         rewardType: r.reward_type, prize: _escH(r.prize), rafflePrize: _escH(r.raffle_prize), topPrize: _escH(r.top_prize),
-        volunteers: Number(r.volunteers) || 0, bags: Number(r.bags) || 0, going: going, isMine: !!r.is_mine
+        volunteers: Number(r.volunteers) || 0, going: going, isMine: !!r.is_mine
       };
     }
 
@@ -7769,28 +7735,12 @@ function saveZonePolygon() {
       <div>
         <div style="width:48px;height:4px;background:#2d6a4f;border-radius:2px;margin-bottom:20px"></div>
         <h2 style="font-family:'Lexend',sans-serif;font-size:28px;font-weight:800;color:#1a1a2e;margin:0 0 16px">What We Do</h2>
-        <p style="font-size:16px;color:#5a6472;line-height:1.8;margin:0">We give Deutschtown residents a simple way to take action. Check into a cleanup zone, log your bags, earn points, and see your impact alongside your neighbors in real time.</p>
+        <p style="font-size:16px;color:#5a6472;line-height:1.8;margin:0">We give Deutschtown residents a simple way to take action. Check into a cleanup zone, log your time, earn points, and see your impact alongside your neighbors in real time.</p>
       </div>
       <div>
         <div style="width:48px;height:4px;background:#ff934f;border-radius:2px;margin-bottom:20px"></div>
         <h2 style="font-family:'Lexend',sans-serif;font-size:28px;font-weight:800;color:#1a1a2e;margin:0 0 16px">Why It Matters</h2>
         <p style="font-size:16px;color:#5a6472;line-height:1.8;margin:0">Clean streets build community pride. When neighbors see each other showing up, it creates a culture of care that goes beyond just picking up litter — it makes Deutschtown a better place to live.</p>
-      </div>
-    </div>
-
-    <!-- Stats -->
-    <div style="background:#1a1a2e;border-radius:20px;padding:48px;display:grid;grid-template-columns:repeat(3,1fr);gap:32px;text-align:center;margin-bottom:64px">
-      <div>
-        <div style="font-family:'Lexend',sans-serif;font-size:42px;font-weight:800;color:#85ceac">3,240+</div>
-        <div style="font-size:16px;color:rgba(255,255,255,0.7);margin-top:6px">Bags collected</div>
-      </div>
-      <div>
-        <div style="font-family:'Lexend',sans-serif;font-size:42px;font-weight:800;color:#85ceac">147</div>
-        <div style="font-size:16px;color:rgba(255,255,255,0.7);margin-top:6px">Active volunteers</div>
-      </div>
-      <div>
-        <div style="font-family:'Lexend',sans-serif;font-size:42px;font-weight:800;color:#85ceac">12</div>
-        <div style="font-size:16px;color:rgba(255,255,255,0.7);margin-top:6px">Zones maintained</div>
       </div>
     </div>
 
@@ -7800,7 +7750,7 @@ function saveZonePolygon() {
       <div style="background:#fff;border-radius:16px;padding:28px 22px">
         <div style="font-size:32px;margin-bottom:14px">✅</div>
         <div style="font-family:'Lexend',sans-serif;font-weight:700;font-size:16px;color:#1a1a2e;margin-bottom:8px">Check In</div>
-        <p style="font-size:14px;color:#5a6472;line-height:1.6;margin:0">Head to any zone in Deutschtown, click Check In, and log your cleanup. Every bag counts.</p>
+        <p style="font-size:14px;color:#5a6472;line-height:1.6;margin:0">Head to any zone in Deutschtown, click Check In, and log your cleanup. Every minute counts.</p>
       </div>
       <div style="background:#fff;border-radius:16px;padding:28px 22px">
         <div style="font-size:32px;margin-bottom:14px">🏠</div>
@@ -7874,7 +7824,7 @@ function saveZonePolygon() {
 
       <h2 style="font-family:'Lexend',sans-serif;font-weight:700;font-size:20px;color:#1a1a2e;margin:0 0 10px">Information We Collect</h2>
       <p style="font-size:15px;color:#5a6472;line-height:1.8;margin:0 0 10px"><strong style="color:#1a1a2e">Account information (website).</strong> If you create an account on this website, we store your name, email address, and profile photo (if you upload one) so you can sign in, earn points, and appear on the leaderboard.</p>
-      <p style="font-size:15px;color:#5a6472;line-height:1.8;margin:0 0 10px"><strong style="color:#1a1a2e">Check-in details.</strong> When you check in &mdash; on the website or in the mobile app &mdash; we record the zone or block you cleaned, how long you cleaned for, how many bags you collected, and any notes you add. For select geofenced sponsor events, we also record your GPS coordinates at the moment of verification. You can mark a check-in anonymous, which hides your name from other users (not from us).</p>
+      <p style="font-size:15px;color:#5a6472;line-height:1.8;margin:0 0 10px"><strong style="color:#1a1a2e">Check-in details.</strong> When you check in &mdash; on the website or in the mobile app &mdash; we record the zone or block you cleaned, how long you cleaned for, and any notes you add. For select geofenced sponsor events, we also record your GPS coordinates at the moment of verification. You can mark a check-in anonymous, which hides your name from other users (not from us).</p>
       <p style="font-size:15px;color:#5a6472;line-height:1.8;margin:0 0 10px"><strong style="color:#1a1a2e">Photos.</strong> If you attach a photo to a check-in, it's stored so progress can be seen. In the mobile app, photos currently stay on your device and are not uploaded anywhere.</p>
       <p style="font-size:15px;color:#5a6472;line-height:1.8;margin:0 0 10px"><strong style="color:#1a1a2e">Location.</strong> The mobile app asks for location access to automatically detect which zone or block you're standing in when you check in, and the website uses location to verify attendance at certain sponsored events. Location is only used in the moment it's requested &mdash; we do not track your movements in the background.</p>
       <p style="font-size:15px;color:#5a6472;line-height:1.8;margin:0 0 24px"><strong style="color:#1a1a2e">Camera, RSVPs &amp; feedback.</strong> The mobile app asks for camera access so you can attach cleanup photos to a check-in, and we never access it at any other time. If you RSVP to an event or send us feedback, we store what you submit (and your email, if provided) to plan events and follow up.</p>
