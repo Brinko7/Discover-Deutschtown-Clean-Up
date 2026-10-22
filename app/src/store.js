@@ -22,12 +22,11 @@ const defaults = () => ({
     onboarded: false,
     ownerId: null,
     points: 0,
-    bags: 0,
     minutes: 0,
     sessions: 0,
     streakWeeks: 0,
   },
-  checkins: [], // { id, ts, minutes, bags, notes, zoneIds, blockIds, points, multiplier, photos:[dataUrl], anonymous }
+  checkins: [], // { id, ts, minutes, notes, zoneIds, blockIds, points, multiplier, photos:[dataUrl], anonymous }
   rsvps: [], // event ids
   adoptions: [], // { blockId, zoneId, adoptedAt }
   zoneCheckins: {}, // zoneId -> count (drives mascot unlocks)
@@ -274,7 +273,6 @@ export function recordCheckin(checkin) {
   update((s) => {
     s.checkins.unshift(checkin);
     s.profile.points += checkin.points;
-    s.profile.bags += checkin.bags;
     s.profile.minutes += checkin.minutes;
     s.profile.sessions += 1;
 
@@ -298,7 +296,6 @@ export function recordCheckin(checkin) {
       zoneId: checkin.zoneIds[0],
       zoneName: zone ? zone.name : '',
       blockName: checkin.blockNames?.[0] || null,
-      bags: checkin.bags,
       ts: checkin.ts,
       color: '#2d6a4f',
     });
@@ -335,7 +332,6 @@ export function activityFeed() {
     zoneId: f.zone_id,
     zoneName: zoneById(f.zone_id)?.name || '',
     blockName: f.block_name,
-    bags: Number(f.bags) || 0,
     ts: new Date(f.created_at).getTime(),
     color: colorFor(f.display_name),
   }));

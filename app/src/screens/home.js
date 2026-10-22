@@ -46,7 +46,7 @@ function feedHtml() {
     .map((a) => {
       const what = a.type === 'adopt'
         ? `adopted <b>${esc(a.blockName || a.zoneName)}</b>`
-        : `cleaned <b>${esc(a.blockName || a.zoneName)}</b>${a.bags ? ` · ${a.bags} bag${a.bags === 1 ? '' : 's'}` : ''}`;
+        : `cleaned <b>${esc(a.blockName || a.zoneName)}</b>`;
       return `
         <div class="feed-item">
           <div class="feed-avatar" style="background:${a.color || '#5a6472'}">${a.anonymous ? '🕶️' : esc(initials(a.name || '?')) || '?'}</div>
@@ -61,7 +61,7 @@ function openDonateSheet() {
   let amount = 25;
   const wrap = openSheet(`
     <h2 class="sheet-title">💚 Support the cleanups</h2>
-    <p class="sheet-sub">Donations buy bags, gloves, and grabbers for volunteers. Every dollar stays in the neighborhood.</p>
+    <p class="sheet-sub">Donations buy supplies, gloves, and grabbers for volunteers. Every dollar stays in the neighborhood.</p>
     <div class="area-chip-row" id="donate-amounts">
       ${[10, 25, 50, 100].map((v) => `<button class="chip ${v === 25 ? 'chip--selected' : ''}" data-amount="${v}">$${v}</button>`).join('')}
     </div>
@@ -124,8 +124,8 @@ export function renderHome(root) {
             <div class="stat-label">Time cleaned</div>
           </div>
           <div class="stat-tile">
-            <div class="stat-value">${s.profile.bags % 1 ? s.profile.bags.toFixed(1) : s.profile.bags}</div>
-            <div class="stat-label">Bags collected</div>
+            <div class="stat-value">${s.profile.sessions}</div>
+            <div class="stat-label">Cleanups</div>
           </div>
         </div>
       </div>
@@ -145,7 +145,7 @@ export function renderHome(root) {
         <div class="card" style="padding:4px 16px">
           ${DONATIONS_ENABLED ? `          <button class="list-row" id="row-donate">
             <span class="row-icon">${icons.heart}</span>
-            <span><b style="font-family:var(--font-display)">Support the cleanups</b><br><span style="font-size:12px;color:var(--warm-gray)">Chip in for bags, gloves &amp; grabbers</span></span>
+            <span><b style="font-family:var(--font-display)">Support the cleanups</b><br><span style="font-size:12px;color:var(--warm-gray)">Chip in for supplies, gloves &amp; grabbers</span></span>
             <span class="row-chevron">${icons.chevronRight}</span>
           </button>` : ''}
           <button class="list-row" id="row-share">

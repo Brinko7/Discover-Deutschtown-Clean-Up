@@ -56,7 +56,7 @@ function historySheet() {
             <div class="feed-avatar" style="background:var(--green-pale);color:var(--green-dark)">${zone?.emoji || '🧹'}</div>
             <div class="feed-text">
               <b>${esc(zone?.name || 'Cleanup')}</b>${c.blockNames?.length ? ' · ' + esc(c.blockNames.join(', ')) : ''}<br>
-              <span style="color:var(--warm-gray);font-size:12px">${c.minutes} min · ${c.bags || 0} bags · +${c.points} pts${c.multiplier > 1 ? ` (${c.multiplier}×)` : ''}</span>
+              <span style="color:var(--warm-gray);font-size:12px">${c.minutes} min · +${c.points} pts${c.multiplier > 1 ? ` (${c.multiplier}×)` : ''}</span>
               ${c.photos?.length ? `<div class="photo-strip" style="margin-top:6px">${c.photos.map((p) => `<img class="photo-thumb" src="${p}" style="width:56px;height:56px" alt="Cleanup photo" />`).join('')}</div>` : ''}
             </div>
             <div class="feed-time">${timeAgo(c.ts)}</div>
@@ -114,7 +114,7 @@ export function renderProfile(root) {
           <div class="profile-stats">
             <div><div class="stat-value">${s.profile.points}</div><div class="stat-label">Points</div></div>
             <div><div class="stat-value">${esc(formatMinutes(s.profile.minutes))}</div><div class="stat-label">Cleaned</div></div>
-            <div><div class="stat-value">${s.profile.bags % 1 ? s.profile.bags.toFixed(1) : s.profile.bags}</div><div class="stat-label">Bags</div></div>
+            <div><div class="stat-value">${s.profile.sessions}</div><div class="stat-label">Cleanups</div></div>
           </div>
         </div>
       </div>
@@ -245,7 +245,7 @@ export function renderProfile(root) {
       <p class="sheet-sub">Effective October 20, 2026</p>
       <div class="card" style="margin-bottom:10px">
         <b style="font-family:var(--font-display)">What this app collects</b>
-        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Your account (username and email), profile name, check-in details (zone/block, time, bags, notes), RSVPs, adopted blocks, and any photos you attach to a check-in. If you allow it, we use your location just once, in the moment, to figure out which zone or block you're standing in. We never track your location in the background, and your coordinates are not stored.</p>
+        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Your account (username and email), profile name, check-in details (zone/block, time, notes), RSVPs, adopted blocks, and any photos you attach to a check-in. If you allow it, we use your location just once, in the moment, to figure out which zone or block you're standing in. We never track your location in the background, and your coordinates are not stored.</p>
       </div>
       <div class="card" style="margin-bottom:10px">
         <b style="font-family:var(--font-display)">Where it's stored</b>

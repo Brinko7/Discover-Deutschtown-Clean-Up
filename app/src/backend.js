@@ -200,7 +200,6 @@ export async function sendCheckin(c) {
     user_id: uid,
     created_at: new Date(c.ts).toISOString(),
     minutes: clamp(Math.round(c.minutes), 0, 1440),
-    bags: clamp(Math.round(c.bags * 100) / 100, 0, 200),
     notes: (c.notes || '').slice(0, 1000) || null,
     zone_ids: c.zoneIds,
     block_ids: c.blockIds || [],

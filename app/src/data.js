@@ -215,7 +215,6 @@ export function normalizeEvent(r) {
     rewardType: r.reward_type || null,
     prize: r.prize || '',
     volunteers: Number(r.volunteers) || 0,
-    bags: Number(r.bags) || 0,
     isPast: date < startOfToday(),
   };
 }

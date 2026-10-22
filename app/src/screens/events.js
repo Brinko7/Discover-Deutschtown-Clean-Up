@@ -48,7 +48,6 @@ function pastCard(ev) {
           <div class="event-name">${esc(ev.name)}</div>
           <div class="event-meta">
             <span>👥 ${ev.volunteers} volunteer${ev.volunteers === 1 ? '' : 's'}</span>
-            <span>🗑️ ${ev.bags % 1 ? ev.bags.toFixed(1) : ev.bags} bags</span>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 // Two-phase check-in, same model as the web version:
 // pick where you're cleaning → live timer session → check out with
-// bags, photos and notes → points + unlocks.
+// photos and notes → points + unlocks.
 import {
   ZONES, blocksForZone, blockById, zoneById,
   getHotSpot, computeScore, ADOPTION_RULES, ZONE_MASCOTS,
@@ -12,7 +12,7 @@ import { tapHaptic, successHaptic, takePhoto, getPosition, locateArea } from '..
 import { navigate, refreshTabBar } from '../main.js';
 
 // Module-level so the session survives tab switches.
-let session = null; // { startTime, zoneId, blockIds:[], photos:[], bags, partial, notes, anonymous }
+let session = null; // { startTime, zoneId, blockIds:[], photos:[], notes, anonymous }
 let timerInterval = null;
 
 export function hasActiveSession() {
@@ -122,8 +122,6 @@ function renderStart(root, params) {
         zoneId,
         blockIds: [...blockIds],
         photos: [],
-        bags: 0,
-        partial: 0,
         notes: '',
         anonymous: false,
       };
@@ -194,12 +192,6 @@ function renderActive(root) {
     });
   };
 
-  const totalBags = () => session.bags + session.partial;
-
-  const paintBags = () => {
-    root.querySelector('#bags-value').textContent = totalBags() % 1 ? totalBags().toFixed(1) : totalBags();
-  };
-
   const blockNames = session.blockIds.map((id) => blockById(id)?.name).filter(Boolean);
 
   root.innerHTML = `
@@ -215,20 +207,6 @@ function renderActive(root) {
         <div class="card" style="padding:22px 16px">
           <div class="timer-label">Session time</div>
           <div class="timer-display" id="timer">00:00</div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="card">
-          <div class="field-label">${icon('trash')} Bags collected</div>
-          <div class="stepper">
-            <button class="stepper-btn" id="bags-minus">${icons.minus}</button>
-            <div class="stepper-value" id="bags-value">0</div>
-            <button class="stepper-btn" id="bags-plus">${icons.plus}</button>
-          </div>
-          <div class="area-chip-row" style="justify-content:center;margin-top:12px">
-            ${[0, 0.25, 0.5, 0.75].map((f) => `<button class="chip ${session.partial === f ? 'chip--selected' : ''}" data-partial="${f}">${f === 0 ? 'No partial' : '+' + f + ' bag'}</button>`).join('')}
-          </div>
         </div>
       </div>
 
@@ -272,26 +250,7 @@ function renderActive(root) {
 
   paintPoints();
   paintPhotos();
-  paintBags();
 
-  root.querySelector('#bags-plus').addEventListener('click', () => {
-    tapHaptic();
-    session.bags += 1;
-    paintBags();
-  });
-  root.querySelector('#bags-minus').addEventListener('click', () => {
-    tapHaptic();
-    session.bags = Math.max(0, session.bags - 1);
-    paintBags();
-  });
-  root.querySelectorAll('[data-partial]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      tapHaptic();
-      session.partial = Number(btn.dataset.partial);
-      root.querySelectorAll('[data-partial]').forEach((b) => b.classList.toggle('chip--selected', b === btn));
-      paintBags();
-    });
-  });
   root.querySelector('#notes').addEventListener('input', (e) => {
     session.notes = e.target.value;
   });
@@ -333,13 +292,11 @@ function finish(root) {
   const score = computeScore(minutes, areaIds, adoptedBlockIds());
   const zone = zoneById(session.zoneId);
   const blockNames = session.blockIds.map((id) => blockById(id)?.name).filter(Boolean);
-  const bags = session.bags + session.partial;
 
   const checkin = {
     id: uuid(),
     ts: Date.now(),
     minutes,
-    bags,
     notes: session.notes.trim(),
     zoneIds: [session.zoneId],
     blockIds: [...session.blockIds],
@@ -360,7 +317,7 @@ function finish(root) {
     <div class="celebrate-title">Nice work${getState().profile.name ? ', ' + esc(getState().profile.name.split(' ')[0]) : ''}!</div>
     <div class="celebrate-points">+${score.total} pts</div>
     <div class="celebrate-sub">
-      ${minutes} min in ${esc(zone.name)}${bags ? ` · ${bags % 1 ? bags.toFixed(2).replace(/0+$/, '') : bags} bag${bags === 1 ? '' : 's'}` : ''}
+      ${minutes} min in ${esc(zone.name)}
       ${score.multiplier > 1 ? `<br>🔥 ${score.multiplier}× bonus applied` : ''}
     </div>`, {
     // Follow-up moments only appear once this card is actually dismissed,
