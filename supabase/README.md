@@ -27,7 +27,7 @@ Run the files in order. All are safe to re-run.
 - Both migrations are **applied** to the live project. Verified: 7 tables with row level security on, 23 policies,
   leaderboard, activity feed and account deletion functions, `checkin-photos` private, `avatars` public, signed-out callers cannot
   read the leaderboard or any table, and nobody can read the feedback box back.
-- **Accounts are required (decided Oct 21, 2026).** Guests are scrapped: the app and the web page both use email + password accounts, and the app shows a sign-in screen until the user is signed in. **Done Oct 21 (evening):** migration 20261021040000 applied, Anonymous OFF, Confirm email OFF, minimum password 8, Site URL and redirect URL set to the live web page. Remaining: run `cleanup_guest_accounts.sql` by hand (preview first) to delete leftover guest accounts.
+- **Accounts are required (decided Oct 21, 2026).** Guests are scrapped: the app and the web page both use email + password accounts, and the app shows a sign-in screen until the user is signed in. **Done Oct 21 (evening):** migration 20261021040000 applied, Anonymous OFF, Confirm email OFF, minimum password 8, Site URL and redirect URL set to the live web page. Guest cleanup done Oct 21 (all test accounts deleted, 0 users).
 - The old project (`tbaovavrxdlpkyexfazm`) is **no longer used anywhere** in the code. Its key is gone from the web page.
 
 ## How the two clients use it
