@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { App as CapApp } from '@capacitor/app';
-import { initStore, getState, update, resetAll, syncNow, subscribeRemote } from './store.js';
+import { initStore, getState, update, resetAll, syncNow, subscribeRemote, setAccountProfile } from './store.js';
 import {
   ensureSession, onAuthChange,
   signInAccount, signUpAccount, resetPassword,
@@ -106,10 +106,15 @@ function showAuth(mode = 'signin') {
     root.innerHTML = authShell(`
       <h1 class="onboard-title">Join the cleanup crew.</h1>
       <p class="onboard-sub">Create an account to check in, earn points and mascot badges, and see your block shine.</p>
-      <input class="text-input" id="su-name" placeholder="Your name (shown on the leaderboard)" maxlength="60" autocomplete="name" style="margin-bottom:8px" />
-      <input class="text-input" id="su-username" placeholder="Username (letters, numbers, _)" maxlength="30" autocomplete="username" style="margin-bottom:8px" />
-      <input class="text-input" id="su-email" type="email" placeholder="Email" autocomplete="email" style="margin-bottom:8px" />
+      <input class="text-input" id="su-username" placeholder="Username (shown to neighbors)" maxlength="30" autocomplete="username" autocapitalize="none" style="margin-bottom:4px" />
+      <p style="font-size:12px;opacity:.7;margin:0 0 8px">Letters, numbers and _ only. This is the name on the leaderboard.</p>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input class="text-input" id="su-first" placeholder="First (optional)" maxlength="40" autocomplete="given-name" style="flex:1;min-width:0" />
+        <input class="text-input" id="su-last" placeholder="Last (optional)" maxlength="40" autocomplete="family-name" style="flex:1;min-width:0" />
+      </div>
+      <input class="text-input" id="su-email" type="email" placeholder="Email (used to sign in)" autocomplete="email" style="margin-bottom:8px" />
       <input class="text-input" id="su-password" type="password" placeholder="Password (8+ characters)" autocomplete="new-password" style="margin-bottom:8px" />
+      <input class="text-input" id="su-password2" type="password" placeholder="Confirm password" autocomplete="new-password" style="margin-bottom:8px" />
       <p id="auth-error" style="display:none;color:#c0392b;font-size:13px;margin:2px 0 8px"></p>
       <button class="btn btn--primary btn--block" id="su-go">Create account</button>
       <button class="onboard-skip" id="su-toggle">Already have an account? Sign in</button>`);
@@ -122,17 +127,19 @@ function showAuth(mode = 'signin') {
     root.querySelector('#su-toggle').addEventListener('click', () => showAuth('signin'));
     root.querySelector('#su-go').addEventListener('click', async (e) => {
       const btn = e.currentTarget;
-      const fullName = root.querySelector('#su-name').value.trim();
+      const firstName = root.querySelector('#su-first').value.trim();
+      const lastName = root.querySelector('#su-last').value.trim();
       const username = cleanUsername(root.querySelector('#su-username').value);
       const email = root.querySelector('#su-email').value.trim();
       const password = root.querySelector('#su-password').value;
-      if (!fullName) return err('Enter your name so neighbors know who cleaned.');
+      const password2 = root.querySelector('#su-password2').value;
       if (!validUsername(username)) return err('Username needs 3 to 30 characters: lowercase letters, numbers or underscores.');
       if (!email) return err('Enter your email.');
       if (password.length < 8) return err('Password needs at least 8 characters.');
+      if (password !== password2) return err('The two passwords do not match. Type them again.');
       btn.disabled = true;
       btn.textContent = 'Creating account…';
-      const { session, error } = await signUpAccount({ email, password, username, fullName });
+      const { session, error } = await signUpAccount({ email, password, username, firstName, lastName });
       btn.disabled = false;
       btn.textContent = 'Create account';
       if (error) return err(friendlyAuthError(error));
@@ -191,14 +198,15 @@ async function startApp() {
   document.getElementById('tab-bar').style.display = '';
   navigate('home');
   syncNow();
-  // Fill in the display name from the account the first time (and after a
-  // different account signs in on this phone, initStore already reset state).
+  // Fill in the username and optional real name from the account the first time
+  // (and after a different account signs in on this phone, initStore already reset state).
   if (!getState().profile.name) {
     const profile = await fetchMyProfile();
-    if (profile && profile.full_name) {
-      update((s) => {
-        s.profile.name = profile.full_name;
-        s.profile.onboarded = true;
+    if (profile) {
+      setAccountProfile({
+        username: profile.username || profile.full_name,
+        firstName: profile.first_name || '',
+        lastName: profile.last_name || '',
       });
       if (currentTab === 'profile') navigate('profile');
     }

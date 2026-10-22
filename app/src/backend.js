@@ -114,7 +114,9 @@ export async function usernameAvailable(u) {
 
 // Creates an account. With email confirmation OFF (closed testing), a
 // session comes back and the user is signed in immediately.
-export async function signUpAccount({ email, password, username, fullName }) {
+// The username is the public display name. The optional first and last name
+// are stored separately and only shown on the person's own profile.
+export async function signUpAccount({ email, password, username, firstName = '', lastName = '' }) {
   const available = await usernameAvailable(username);
   if (available === false) {
     return { session: null, error: { message: 'That username is taken. Pick another one.' } };
@@ -122,7 +124,7 @@ export async function signUpAccount({ email, password, username, fullName }) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { username, full_name: fullName } },
+    options: { data: { username, full_name: username, first_name: firstName, last_name: lastName } },
   });
   if (error) return { session: null, error };
   if (data.session) setSession(data.session);
@@ -157,12 +159,12 @@ export async function fetchMyProfile() {
 
 // ── Writes (called from the outbox) ──────────────────────────
 
-export async function sendProfileName(name) {
+export async function sendProfileNames(firstName, lastName) {
   const uid = await ensureSession();
   if (!uid) return RETRY;
   const { error } = await supabase
     .from('profiles')
-    .update({ full_name: String(name || '').slice(0, 60) })
+    .update({ first_name: String(firstName || '').slice(0, 40), last_name: String(lastName || '').slice(0, 40) })
     .eq('id', uid);
   return verdict(error);
 }

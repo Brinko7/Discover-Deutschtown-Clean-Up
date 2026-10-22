@@ -1,5 +1,5 @@
 import { ZONE_MASCOTS, zoneById, blockById, formatMinutes, ADOPTION_RULES } from '../data.js';
-import { getState, setProfileName, timeAgo, getRemote, refreshRemote, colorFor, resetAll } from '../store.js';
+import { getState, setProfileNames, timeAgo, getRemote, refreshRemote, colorFor, resetAll } from '../store.js';
 import { deleteMyAccount, signOutAccount, currentAccount } from '../backend.js';
 import { icon, esc, openSheet, closeSheet, toast } from '../ui.js';
 import { icons } from '../icons.js';
@@ -70,20 +70,19 @@ function editNameSheet(rerender) {
   const s = getState();
   const wrap = openSheet(`
     <h2 class="sheet-title">Your name</h2>
-    <p class="sheet-sub">Shown on the leaderboard and activity feed.</p>
-    <input class="text-input" id="name-input" value="${esc(s.profile.name)}" maxlength="30" placeholder="Your name" />
+    <p class="sheet-sub">Neighbors see your username, <b>${esc(s.profile.name || '')}</b>. Your first and last name are optional and only show on your own profile.</p>
+    <input class="text-input" id="first-input" value="${esc(s.profile.firstName || '')}" maxlength="40" placeholder="First name (optional)" autocomplete="given-name" style="margin-bottom:8px" />
+    <input class="text-input" id="last-input" value="${esc(s.profile.lastName || '')}" maxlength="40" placeholder="Last name (optional)" autocomplete="family-name" />
     <div style="height:12px"></div>
     <button class="btn btn--primary btn--block" id="name-save">Save</button>`);
   const save = () => {
-    const v = wrap.querySelector('#name-input').value.trim();
-    if (!v) return toast('Enter a name first');
-    setProfileName(v);
+    setProfileNames(wrap.querySelector('#first-input').value, wrap.querySelector('#last-input').value);
     closeSheet();
     toast('Name updated', { emoji: '✅' });
     rerender();
   };
   wrap.querySelector('#name-save').addEventListener('click', save);
-  wrap.querySelector('#name-input').addEventListener('keydown', (e) => {
+  wrap.querySelector('#last-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') save();
   });
 }
@@ -110,6 +109,7 @@ export function renderProfile(root) {
         <div class="card profile-hero">
           <div class="profile-avatar">${esc(initials(s.profile.name || ''))}</div>
           <div class="profile-name">${esc(s.profile.name || 'Neighbor')}</div>
+          ${(s.profile.firstName || s.profile.lastName) ? `<div style="font-size:14px;opacity:.9;margin-top:2px">${esc([s.profile.firstName, s.profile.lastName].filter(Boolean).join(' '))}</div>` : ''}
           <div style="font-size:12.5px;opacity:.8;margin-top:2px">Deutschtown${youRank ? ` · Rank #${youRank} on the board` : ''}</div>
           <div class="profile-stats">
             <div><div class="stat-value">${s.profile.points}</div><div class="stat-label">Points</div></div>

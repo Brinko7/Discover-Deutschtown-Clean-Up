@@ -8,7 +8,7 @@ import { Preferences } from '@capacitor/preferences';
 import { zoneById, normalizeEvent, setZoneMeta } from './data.js';
 import {
   DONE, RETRY,
-  ensureSession, currentUserId, sendProfileName, sendCheckin, sendRsvp, sendAdoption,
+  ensureSession, currentUserId, sendProfileNames, sendCheckin, sendRsvp, sendAdoption,
   fetchLeaderboard, fetchFeed, fetchEvents, fetchZoneActivity,
 } from './backend.js';
 
@@ -16,7 +16,9 @@ const KEY = 'myb_state_v1';
 
 const defaults = () => ({
   profile: {
-    name: '',
+    name: '', // the username: the public display name
+    firstName: '', // optional, shown only on your own profile
+    lastName: '',
     onboarded: false,
     ownerId: null,
     points: 0,
@@ -119,7 +121,7 @@ function queue(op) {
 }
 
 async function sendOp(op) {
-  if (op.t === 'profile') return sendProfileName(op.name);
+  if (op.t === 'profile') return sendProfileNames(op.firstName, op.lastName);
   if (op.t === 'rsvp') return sendRsvp(op.eventId, op.going);
   if (op.t === 'adopt') return sendAdoption(op.blockId, op.zoneId);
   if (op.t === 'checkin') {
@@ -210,15 +212,27 @@ export async function resetAll() {
 
 // ── State changes ────────────────────────────────────────────
 
-export function setProfileName(name) {
-  const clean = name.trim();
+// The username (public display name) comes from the account and does not change here.
+export function setAccountProfile({ username, firstName = '', lastName = '' }) {
   update((s) => {
-    s.profile.name = clean;
+    if (username) s.profile.name = username;
+    s.profile.firstName = firstName;
+    s.profile.lastName = lastName;
     s.profile.onboarded = true;
-    // Only the latest name needs sending.
+  });
+}
+
+// Optional real name, shown as a subheader on your own profile.
+export function setProfileNames(firstName, lastName) {
+  const first = String(firstName || '').trim().slice(0, 40);
+  const last = String(lastName || '').trim().slice(0, 40);
+  update((s) => {
+    s.profile.firstName = first;
+    s.profile.lastName = last;
+    // Only the latest names need sending.
     s.outbox = s.outbox.filter((op) => op.t !== 'profile');
   });
-  queue({ t: 'profile', name: clean });
+  queue({ t: 'profile', firstName: first, lastName: last });
 }
 
 export function toggleRsvp(eventId) {

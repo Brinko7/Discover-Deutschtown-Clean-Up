@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-10-21 16:30:30 -->
+<!-- VERSION: 2026-10-21 22:30:00 -->
 <!-- 
   SUPABASE SCHEMA ADDITIONS FOR BLOCKS:
   
@@ -3575,14 +3575,18 @@ function closeAbout() {
           <div class="auth-switch">Don't have an account? <a onclick="showSignup()">Sign up free</a></div>
         </div>
         <div id="auth-form-signup" style="display:none">
-          <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="signup-name"
-              placeholder="Your full name"></div>
-          <div class="form-group"><label class="form-label">Username</label><input class="form-input"
+          <div class="form-group"><label class="form-label">Username (shown to neighbors)</label><input class="form-input"
               id="signup-username" placeholder="e.g. jordan_ea"></div>
+          <div class="form-group"><label class="form-label">First name (optional)</label><input class="form-input" id="signup-first"
+              placeholder="First name" autocomplete="given-name"></div>
+          <div class="form-group"><label class="form-label">Last name (optional)</label><input class="form-input" id="signup-last"
+              placeholder="Last name" autocomplete="family-name"></div>
           <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="signup-email"
               type="email" placeholder="you@example.com"></div>
           <div class="form-group"><label class="form-label">Password</label><input class="form-input"
               id="signup-password" type="password" placeholder="At least 8 characters"></div>
+          <div class="form-group"><label class="form-label">Confirm password</label><input class="form-input"
+              id="signup-password2" type="password" placeholder="Type it again"></div>
 
           <!-- Business account -->
           <div class="sponsor-toggle-wrap" style="margin:16px 0 4px">
@@ -3628,10 +3632,12 @@ function closeAbout() {
           </div>
         </label>
         <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="previewAvatar(event)">
-        <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="profile-name"
-            placeholder="Your name"></div>
-        <div class="form-group"><label class="form-label">Username</label><input class="form-input"
+        <div class="form-group"><label class="form-label">Username (shown to neighbors)</label><input class="form-input"
             id="profile-username" placeholder="e.g. jordan_ea"></div>
+        <div class="form-group"><label class="form-label">First name (optional)</label><input class="form-input" id="profile-first"
+            placeholder="First name"></div>
+        <div class="form-group"><label class="form-label">Last name (optional)</label><input class="form-input" id="profile-last"
+            placeholder="Last name"></div>
         <div class="form-group"><label class="form-label">Neighborhood</label><input class="form-input"
             id="profile-neighborhood" value="Deutschtown" placeholder="Your neighborhood"></div>
         <div class="form-group">
@@ -4713,25 +4719,31 @@ function closeAbout() {
     }
 
     async function signUp() {
-      const name     = document.getElementById('signup-name').value.trim();
+      const first    = document.getElementById('signup-first').value.trim();
+      const last     = document.getElementById('signup-last').value.trim();
       // NOTE: read the signup email field, not the login one
       const emailEl  = document.getElementById('signup-email');
       const email    = (emailEl ? emailEl.value : '').trim();
       const username = document.getElementById('signup-username').value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
       const btn      = document.getElementById('signup-btn');
       const pw       = document.getElementById('signup-password').value;
+      const pw2      = document.getElementById('signup-password2').value;
 
       const isBusiness   = !!(document.getElementById('signup-is-business') || {}).checked;
       const businessName = (document.getElementById('signup-business-name') || {}).value || '';
       const businessRole = (document.getElementById('signup-business-role') || {}).value || '';
       const businessUrl  = (document.getElementById('signup-business-url') || {}).value || '';
 
-      if (!name || !username || !email || !pw) { showAuthError('Please fill in all fields.'); return; }
+      if (!username || !email || !pw) { showAuthError('Please enter a username, email and password.'); return; }
+      if (username.length < 3) { showAuthError('Username needs at least 3 letters, numbers or underscores.'); return; }
       if (pw.length < 8) { showAuthError('Password must be at least 8 characters.'); return; }
+      if (pw !== pw2) { showAuthError('The two passwords do not match.'); return; }
       if (isBusiness && !businessName.trim()) { showAuthError('Please enter your business name.'); return; }
 
       const meta = {
-        full_name: name,
+        full_name: username, // the username is the public display name
+        first_name: first,
+        last_name: last,
         username: username,
         account_type: isBusiness ? 'business' : 'resident',
       };
@@ -4797,7 +4809,8 @@ function closeAbout() {
 
     function openProfileModal() {
       if (!currentProfile) return;
-      document.getElementById('profile-name').value = currentProfile.full_name || '';
+      document.getElementById('profile-first').value = currentProfile.first_name || '';
+      document.getElementById('profile-last').value = currentProfile.last_name || '';
       document.getElementById('profile-username').value = currentProfile.username || '';
       document.getElementById('profile-neighborhood').value = currentProfile.neighborhood || 'Deutschtown';
       if (document.getElementById('profile-zone')) document.getElementById('profile-zone').value = currentProfile.zone || '';
@@ -4834,8 +4847,11 @@ function closeAbout() {
       }
       const zoneEl = document.getElementById('profile-zone');
       const updates = {
-        full_name: document.getElementById('profile-name').value.trim(),
+        // the username is the public display name; first and last name are optional and private
+        full_name: document.getElementById('profile-username').value.trim() || currentProfile.full_name || '',
         username: document.getElementById('profile-username').value.trim(),
+        first_name: document.getElementById('profile-first').value.trim().slice(0, 40),
+        last_name: document.getElementById('profile-last').value.trim().slice(0, 40),
         neighborhood: document.getElementById('profile-neighborhood').value.trim(),
         zone: zoneEl ? zoneEl.value : (currentProfile.zone || ''),
         avatar_url: avatarUrl,
