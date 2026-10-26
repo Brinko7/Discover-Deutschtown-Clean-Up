@@ -1,7 +1,7 @@
 # App Store Connect and TestFlight pack (individual developer account)
 
 App: Mind Your Block. Bundle ID `com.boredbrinko.mindyourblock`, version 1.0, build 1.
-Status: **the app is ready to archive. It is waiting on the Apple Developer enrollment.** Nothing here has been entered in App Store Connect.
+Status: **Apple Developer enrollment approved Oct 26, 2026.** Pack updated for accounts (no guests) Oct 26. Record, upload and TestFlight setup are done by Claude, nothing is sent to Apple for review until Zach says so.
 
 ## Already done in the project
 
@@ -51,7 +51,7 @@ Status: **the app is ready to archive. It is waiting on the Apple Developer enro
   • Adopt a block and keep it looking good
   • Climb the neighborhood leaderboard, or check in anonymously
 
-  No account needed. You start as a guest, and you can delete all of your data from the You tab at any time.
+  Create a free account with a username and email to start. You can delete your account and all of your data from the You tab at any time.
 - **What's new:** First test release for neighbors.
 - **Screenshots:** the five files in `store/app-store-assets/iphone-6.9-inch/`, in order 1 to 5.
 - **Copyright:** 2026 Zach Carman (or your legal name as enrolled).
@@ -62,10 +62,11 @@ Everything below matches the privacy manifest in the project. Nothing is used fo
 
 | Data type | Collected | Linked to the user | Purpose |
 | --- | --- | --- | --- |
-| Name (display name you type) | Yes | Yes | App functionality |
+| Name (username shown to neighbors, optional first and last name) | Yes | Yes | App functionality |
+| Email address (used to sign in) | Yes | Yes | App functionality, account management |
 | Photos | Yes (optional, private) | Yes | App functionality |
 | Other user content (check-in notes) | Yes (optional, private) | Yes | App functionality |
-| User ID (anonymous guest id) | Yes | Yes | App functionality |
+| User ID (account id) | Yes | Yes | App functionality |
 | Product interaction (check-ins, RSVPs, adoptions, points) | Yes | Yes | App functionality |
 | Precise or coarse location | **No** (used on the phone to pick a zone, never sent or stored) | n/a | n/a |
 | Email, phone, contacts, financial info, health, browsing history | No | n/a | n/a |
@@ -75,11 +76,11 @@ Everything below matches the privacy manifest in the project. Nothing is used fo
 
 ## App Review information
 
-- **Sign-in required:** No. The app signs in automatically as a guest.
+- **Sign-in required:** Yes. Create a demo account first (sign up in the app or on the web page with a throwaway email), then enter its email and password in the App Review sign-in fields. Zach creates this account himself.
 - **Contact:** Zach Carman, zach.carman@gmail.com, **phone number (Apple requires one, add yours)**.
 - **Notes for the reviewer:**
-  > Mind Your Block is a neighborhood litter cleanup app for Deutschtown in Pittsburgh. No account is needed: the app creates an anonymous guest account the first time you tap "Let's clean up" or "Continue as guest". To try the main flow: open the Check In tab, tap "Find my zone automatically" (or pick any zone), tap Start cleanup, then Finish and check out. Location is only used once, when you tap "Find my zone", to pick the zone you are standing in. Photos are optional and private. Group events appear in the Events tab once the organizer approves them, so that list can be empty during review. You can delete your account and all data from the You tab, Delete my data.
-- **Features that need real-world conditions:** GPS zone detection only works inside the Deutschtown neighborhood. A reviewer elsewhere can still pick a zone by hand.
+  > Mind Your Block is a neighborhood litter cleanup app for Deutschtown in Pittsburgh. Sign in with the demo account in the sign-in fields above, or tap "New here? Create an account" to make one (confirming the email is not required). To try the main flow: open the Check In tab, tap "Find my zone automatically" (or pick any zone), tap Start cleanup, then Finish and check out. Location is only used once, when you tap "Find my zone", to pick the zone you are standing in. Photos are optional and private. Group events appear in the Events tab once the organizer approves them, so that list can be empty during review. You can delete your account and all data from the You tab, Delete my data.
+- **Features that need real-world conditions:** GPS zone detection only works inside the Deutschtown neighborhood. Starting a cleanup requires your location to be inside the chosen zone (or within 100 m of it), so a reviewer elsewhere can browse every screen but cannot start a cleanup. Say so in the review notes, and consider a reviewer note offering a video of the check-in flow, or turn `REQUIRE_LOCATION` off in `app/src/data.js` for the review build.
 
 ## TestFlight
 
