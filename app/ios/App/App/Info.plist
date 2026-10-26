@@ -55,5 +55,7 @@
 	<string>Mind Your Block can save your cleanup photos to your library.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Mind Your Block uses your location to find which cleanup zone and block you are standing in.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Mind Your Block uses your location only while the app is open, to find which cleanup zone and block you are standing in. It never tracks you in the background.</string>
 </dict>
 </plist>
