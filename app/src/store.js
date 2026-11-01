@@ -6,10 +6,11 @@
 // Changes are also queued in an outbox and sent to Supabase (see backend.js) when there is a connection.
 import { Preferences } from '@capacitor/preferences';
 import { zoneById, normalizeEvent, setZoneMeta, setHotZones } from './data.js';
+import { estimateXp } from './levels.js';
 import {
   DONE, RETRY,
   ensureSession, currentUserId, sendProfileNames, sendCheckin, sendRsvp, sendAdoption,
-  fetchLeaderboard, fetchFeed, fetchEvents, fetchZoneActivity, fetchHotZones, photoPath,
+  fetchLeaderboard, fetchFeed, fetchEvents, fetchZoneActivity, fetchHotZones, fetchMyStats, photoPath,
 } from './backend.js';
 
 const KEY = 'myb_state_v1';
@@ -22,6 +23,7 @@ const defaults = () => ({
     lastName: '',
     onboarded: false,
     ownerId: null,
+    xp: 0, // XP the server has counted; cleanups still waiting to be sent are added on top (see totalXp)
     points: 0,
     minutes: 0,
     sessions: 0,
@@ -58,7 +60,10 @@ export function uuid() {
 export async function initStore() {
   try {
     const { value } = await Preferences.get({ key: KEY });
-    if (value) state = { ...defaults(), ...JSON.parse(value) };
+    if (value) {
+      const saved = JSON.parse(value);
+      state = { ...defaults(), ...saved, profile: { ...defaults().profile, ...saved.profile } };
+    }
   } catch (e) {
     console.warn('Failed to load saved state, starting fresh', e);
   }
@@ -171,7 +176,10 @@ export async function flushOutbox() {
   } finally {
     flushing = false;
   }
-  if (sentCheckin) refreshRemote(true);
+  if (sentCheckin) {
+    refreshRemote(true);
+    refreshMyStats();
+  }
 }
 
 export function getRemote() {
@@ -212,7 +220,66 @@ export async function syncNow() {
   // Nothing syncs while signed out: there are no guest accounts anymore.
   if (!(await ensureSession())) return;
   await flushOutbox();
-  await refreshRemote(true);
+  await Promise.all([refreshRemote(true), refreshMyStats()]);
+}
+
+// ── Your own totals ──────────────────────────────────────────
+// The server keeps the real totals (XP, points, minutes, per-zone counts), so a
+// new phone or a reinstall gets them back. Cleanups still waiting in the outbox
+// are not on the server yet, so they are added on top.
+
+const pendingCheckinIds = () => new Set(state.outbox.filter((op) => op.t === 'checkin').map((op) => op.id));
+const outboxSig = () => state.outbox.map((op) => op.t + (op.id || op.eventId || op.blockId || '')).join('|');
+
+// Total XP: what the server counted plus an estimate for cleanups not sent yet.
+export function totalXp() {
+  const waiting = pendingCheckinIds();
+  const extra = state.checkins.reduce((sum, c) => sum + (waiting.has(c.id) ? c.xp || 0 : 0), 0);
+  return (Number(state.profile.xp) || 0) + extra;
+}
+
+export async function refreshMyStats() {
+  const sig = outboxSig();
+  const stats = await fetchMyStats();
+  // If a send was running or the queue changed while we asked, the totals could
+  // count a cleanup twice. Skip; the next sync tries again.
+  if (!stats || flushing || sig !== outboxSig()) return;
+  update((s) => applyMyStats(s, stats));
+}
+
+function applyMyStats(s, stats) {
+  const waiting = new Set(s.outbox.filter((op) => op.t === 'checkin').map((op) => op.id));
+  const pending = s.checkins.filter((c) => waiting.has(c.id));
+  const sum = (key) => pending.reduce((n, c) => n + (c[key] || 0), 0);
+
+  s.profile.xp = Number(stats.xp) || 0;
+  s.profile.points = (Number(stats.points) || 0) + sum('points');
+  s.profile.minutes = (Number(stats.minutes) || 0) + sum('minutes');
+  s.profile.sessions = (Number(stats.sessions) || 0) + pending.length;
+  s.profile.streakWeeks = Number(stats.streak_weeks) || 0;
+
+  const zones = { ...(stats.zone_counts || {}) };
+  const blocks = { ...(stats.block_counts || {}) };
+  pending.forEach((c) => {
+    c.zoneIds.forEach((z) => { zones[z] = (zones[z] || 0) + 1; });
+    (c.blockIds || []).forEach((b) => { blocks[b] = (blocks[b] || 0) + 1; });
+  });
+  s.zoneCheckins = zones;
+  s.blockCheckins = blocks;
+  s.mascots = [...new Set([...s.mascots, ...Object.keys(zones)])];
+
+  // Adopted blocks: the server's list, plus adoptions still waiting to be sent.
+  const adopted = new Map((stats.adoptions || []).map((a) => [a.blockId, a]));
+  s.outbox.filter((op) => op.t === 'adopt').forEach((op) => {
+    const local = s.adoptions.find((a) => a.blockId === op.blockId);
+    adopted.set(op.blockId, { blockId: op.blockId, zoneId: op.zoneId, adoptedAt: local?.adoptedAt || Date.now() });
+  });
+  s.adoptions = [...adopted.values()];
+
+  // RSVPs: the server's list with any changes still waiting on top.
+  const going = new Set(stats.rsvps || []);
+  s.outbox.filter((op) => op.t === 'rsvp').forEach((op) => (op.going ? going.add(op.eventId) : going.delete(op.eventId)));
+  s.rsvps = [...going];
 }
 
 // Wipes everything on this phone (after the server data was deleted).
@@ -340,6 +407,10 @@ export function adoptedBlockIds() {
 // Records a completed session and returns anything that unlocked.
 export function recordCheckin(checkin) {
   const unlocked = [];
+  // An estimate until the server counts it (it works XP out itself); see levels.js.
+  checkin.xp = estimateXp(state, {
+    minutes: checkin.minutes, zoneId: checkin.zoneIds[0], blockIds: checkin.blockIds, ts: checkin.ts,
+  });
   update((s) => {
     s.checkins.unshift(checkin);
     s.profile.points += checkin.points;

@@ -1,6 +1,7 @@
 import { hotZoneList, zoneById, formatMinutes, MIXER, VENMO_HANDLE, DONATIONS_ENABLED } from '../data.js';
-import { getState, activityFeed, timeAgo, refreshRemote } from '../store.js';
-import { icon, esc, openSheet, closeSheet, toast } from '../ui.js';
+import { getState, activityFeed, timeAgo, refreshRemote, totalXp } from '../store.js';
+import { levelInfo } from '../levels.js';
+import { icon, esc, openSheet, closeSheet, toast, levelCard, bindLevelCards } from '../ui.js';
 import { icons } from '../icons.js';
 import { tapHaptic, shareApp } from '../native.js';
 import { navigate } from '../main.js';
@@ -123,6 +124,7 @@ export function renderHome(root) {
             <div class="stat-label">Cleanups</div>
           </div>
         </div>
+        <div style="margin-top:10px">${levelCard(levelInfo(totalXp()))}</div>
       </div>
 
       ${hotZoneList().length ? `
@@ -158,6 +160,7 @@ export function renderHome(root) {
       </div>
     </div>`;
 
+  bindLevelCards(root, totalXp);
   root.querySelector('#hero-checkin').addEventListener('click', () => {
     tapHaptic();
     navigate('checkin');

@@ -9,8 +9,9 @@ import {
 } from '../data.js';
 import {
   getState, recordCheckin, adoptedBlockIds, adoptBlock, uuid,
-  saveActiveSession, loadActiveSession,
+  saveActiveSession, loadActiveSession, totalXp,
 } from '../store.js';
+import { levelInfo, estimateXp } from '../levels.js';
 import { icon, esc, openSheet, closeSheet, toast, celebrate } from '../ui.js';
 import { icons } from '../icons.js';
 import { tapHaptic, successHaptic, takePhoto, getPosition, locateArea, distanceToPolygonMeters } from '../native.js';
@@ -266,11 +267,12 @@ function renderActive(root) {
     }
     const el = root.querySelector('#points-preview');
     if (!el) return;
+    const xp = estimateXp(getState(), { minutes: creditedMinutes(), zoneId: session.zoneId, blockIds: session.blockIds });
     el.innerHTML = `
       <div>
         <div class="pv-note">You'll earn</div>
         <div class="pv-total">${score.total} pts</div>
-        <div class="pv-note">${score.base} base${score.multiplier > 1 ? ` × ${score.multiplier}` : ''}</div>
+        <div class="pv-note">${score.base} base${score.multiplier > 1 ? ` × ${score.multiplier}` : ''} · +${xp} XP</div>
       </div>
       ${score.multiplier > 1 ? `<div class="mult-badge">🔥 ${score.multiplier}× active</div>` : ''}`;
   };
@@ -523,13 +525,16 @@ function finish(root, minutes) {
 
   const firstBlock = session.blockIds[0] || null;
   endSession();
+  const levelBefore = levelInfo(totalXp()).level;
   const unlockedZones = recordCheckin(checkin);
+  const levelAfter = levelInfo(totalXp());
   successHaptic();
 
   celebrate(`
     <div class="celebrate-emoji">🎉</div>
     <div class="celebrate-title">Nice work${getState().profile.name ? ', ' + esc(getState().profile.name.split(' ')[0]) : ''}!</div>
     <div class="celebrate-points">+${score.total} pts</div>
+    <div class="celebrate-xp">+${checkin.xp} XP</div>
     <div class="celebrate-sub">
       ${minutes} min in ${esc(zone.name)}
       ${score.multiplier > 1 ? `<br>🔥 ${score.multiplier}× bonus applied` : ''}
@@ -537,17 +542,23 @@ function finish(root, minutes) {
     // Follow-up moments only appear once this card is actually dismissed,
     // so celebration overlays never stack on top of each other.
     onClose: () => {
-      if (unlockedZones.length) {
-        const mascot = ZONE_MASCOTS.find((m) => m.zoneId === unlockedZones[0]);
-        if (mascot) {
-          celebrate(`
-            <div class="celebrate-emoji">${mascot.emoji}</div>
-            <div class="celebrate-title">You met ${esc(mascot.name)}!</div>
-            <div class="celebrate-sub">"${esc(mascot.motto)}"<br>Mascot badge added to your collection.</div>`);
-          return;
-        }
+      const mascot = unlockedZones.length ? ZONE_MASCOTS.find((m) => m.zoneId === unlockedZones[0]) : null;
+      const showMascot = () => {
+        if (!mascot) return maybePromptAdoption(firstBlock);
+        celebrate(`
+          <div class="celebrate-emoji">${mascot.emoji}</div>
+          <div class="celebrate-title">You met ${esc(mascot.name)}!</div>
+          <div class="celebrate-sub">"${esc(mascot.motto)}"<br>Mascot badge added to your collection.</div>`);
+      };
+      if (levelAfter.level > levelBefore) {
+        celebrate(`
+          <div class="celebrate-emoji">⭐</div>
+          <div class="celebrate-title">Level ${levelAfter.level}!</div>
+          <div class="celebrate-points">${esc(levelAfter.title)}</div>
+          <div class="celebrate-sub">${levelAfter.toNext} XP to level ${levelAfter.level + 1}.</div>`, { onClose: showMascot });
+        return;
       }
-      maybePromptAdoption(firstBlock);
+      showMascot();
     },
   });
 

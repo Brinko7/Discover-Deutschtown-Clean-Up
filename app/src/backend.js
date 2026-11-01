@@ -157,6 +157,15 @@ export async function fetchMyProfile() {
   return data[0];
 }
 
+// Your own totals from the server: XP, points, minutes, streak, per-zone and per-block
+// counts, adopted blocks and RSVPs. This is what brings a level back on a new phone.
+export async function fetchMyStats() {
+  if (!(await ensureSession())) return null;
+  const { data, error } = await supabase.rpc('my_stats');
+  if (error || !data || !data.length) return null;
+  return data[0];
+}
+
 // ── Writes (called from the outbox) ──────────────────────────
 
 export async function sendProfileNames(firstName, lastName) {

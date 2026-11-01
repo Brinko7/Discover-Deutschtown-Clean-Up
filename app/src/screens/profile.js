@@ -1,7 +1,8 @@
 import { ZONE_MASCOTS, zoneById, blockById, formatMinutes, ADOPTION_RULES } from '../data.js';
-import { getState, setProfileNames, timeAgo, getRemote, refreshRemote, colorFor, resetAll } from '../store.js';
+import { getState, setProfileNames, timeAgo, getRemote, refreshRemote, colorFor, resetAll, totalXp } from '../store.js';
+import { levelInfo } from '../levels.js';
 import { deleteMyAccount, signOutAccount, currentAccount, photoUrls } from '../backend.js';
-import { icon, esc, openSheet, closeSheet, toast } from '../ui.js';
+import { icon, esc, openSheet, closeSheet, toast, levelCard, bindLevelCards } from '../ui.js';
 import { icons } from '../icons.js';
 import { tapHaptic, shareApp } from '../native.js';
 
@@ -23,6 +24,7 @@ function leaderboardData() {
     full_name: r.full_name,
     points: Number(r.points),
     streak_weeks: r.streak_weeks,
+    level: levelInfo(r.xp).level,
     isYou: r.is_you,
     _color: r.is_you ? '#2d6a4f' : colorFor(r.full_name),
   }));
@@ -41,7 +43,7 @@ function podiumHtml(top3) {
             ${esc(initials(p.full_name))}
           </div>
           <div class="podium-name">${medals[i]} ${esc(p.isYou ? 'You' : p.full_name.split(' ')[0])}</div>
-          <div class="podium-pts">${p.points} pts</div>
+          <div class="podium-pts">Lv ${p.level} · ${p.points} pts</div>
         </div>` : '').join('')}
     </div>`;
 }
@@ -63,7 +65,9 @@ function historySheet() {
             <div class="feed-time">${timeAgo(c.ts)}</div>
           </div>`;
       }).join('')
-    : `<div class="empty-state"><div class="empty-emoji">🧹</div><p>No check-ins yet — your history will show up here.</p></div>`;
+    : s.profile.sessions > 0
+      ? `<div class="empty-state"><div class="empty-emoji">☁️</div><p>Your ${s.profile.sessions} earlier cleanup${s.profile.sessions === 1 ? ' is' : 's are'} saved to your account and counted in your totals. The list itself only shows cleanups made on this phone.</p></div>`
+      : `<div class="empty-state"><div class="empty-emoji">🧹</div><p>No check-ins yet — your history will show up here.</p></div>`;
   const wrap = openSheet(`<h2 class="sheet-title">Your cleanups</h2><div class="card" style="margin-top:8px">${rows}</div>`, { tall: s.checkins.length > 3 });
 
   // Sent photos live only on the server: fetch short-lived links to show them.
@@ -127,6 +131,7 @@ export function renderProfile(root) {
           <div class="profile-name">${esc(s.profile.name || 'Neighbor')}</div>
           ${(s.profile.firstName || s.profile.lastName) ? `<div style="font-size:14px;opacity:.9;margin-top:2px">${esc([s.profile.firstName, s.profile.lastName].filter(Boolean).join(' '))}</div>` : ''}
           <div style="font-size:12.5px;opacity:.8;margin-top:2px">Deutschtown${youRank ? ` · Rank #${youRank} on the board` : ''}</div>
+          ${levelCard(levelInfo(totalXp()), { onDark: true })}
           <div class="profile-stats">
             <div><div class="stat-value">${s.profile.points}</div><div class="stat-label">Points</div></div>
             <div><div class="stat-value">${esc(formatMinutes(s.profile.minutes))}</div><div class="stat-label">Cleaned</div></div>
@@ -146,6 +151,7 @@ export function renderProfile(root) {
                 <div class="lb-avatar" style="background:${p._color}">${esc(initials(p.full_name))}</div>
                 <div class="lb-name">${esc(p.isYou ? (p.full_name === 'You' ? 'You' : p.full_name + ' (you)') : p.full_name)}</div>
                 ${p.streak_weeks >= 3 ? '<span class="badge badge--hot">🔥</span>' : ''}
+                <span class="lb-lv">Lv ${p.level}</span>
                 <div class="lb-pts">${p.points}</div>
               </div>`).join('')}
             ${youRank > 11 ? (() => {
@@ -155,6 +161,7 @@ export function renderProfile(root) {
                   <div class="lb-rank">${youRank}</div>
                   <div class="lb-avatar" style="background:${you._color}">${esc(initials(you.full_name))}</div>
                   <div class="lb-name">${esc(you.full_name === 'You' ? 'You' : you.full_name + ' (you)')}</div>
+                  <span class="lb-lv">Lv ${you.level}</span>
                   <div class="lb-pts">${you.points}</div>
                 </div>`;
             })() : ''}
@@ -226,6 +233,7 @@ export function renderProfile(root) {
       </div>
     </div>`;
 
+  bindLevelCards(root, totalXp);
   root.querySelector('#btn-edit-name').addEventListener('click', () => {
     tapHaptic();
     editNameSheet(rerender);
