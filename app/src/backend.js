@@ -33,10 +33,15 @@ export const DROP = 'drop'; // the server refused it for good, retrying would lo
 
 const PERMANENT_STORAGE_STATUS = ['400', '403', '404', '409', '413', '415', '422'];
 
+// Errors that retrying can never fix: a rule refused the change (row level security 42501,
+// constraint 23xxx, bad data 22xxx, a rule in the database P0001) or the request itself is
+// malformed (PGRST1xx). Everything else, such as the API reloading after a restart (PGRST002),
+// a timeout or an expired login (PGRST301), is temporary: keep the change and try again.
+const PERMANENT_DB_CODE = /^(22|23|42501|P0001|PGRST1\d\d)/;
+
 function verdict(error) {
   if (!error) return DONE;
-  // Database errors carry a code (RLS refusal, constraint, duplicate). Network failures do not.
-  if (typeof error.code === 'string' && error.code !== '' && error.code !== 'PGRST301') return DROP;
+  if (typeof error.code === 'string' && PERMANENT_DB_CODE.test(error.code)) return DROP;
   if (PERMANENT_STORAGE_STATUS.includes(String(error.statusCode))) return DROP;
   return RETRY;
 }

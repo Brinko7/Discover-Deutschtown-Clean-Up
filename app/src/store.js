@@ -23,6 +23,7 @@ const defaults = () => ({
     lastName: '',
     onboarded: false,
     ownerId: null,
+    safetyAck: false, // has seen the safety card before a first cleanup
     xp: 0, // XP the server has counted; cleanups still waiting to be sent are added on top (see totalXp)
     points: 0,
     minutes: 0,
@@ -369,6 +370,12 @@ export function setProfileNames(firstName, lastName) {
     s.outbox = s.outbox.filter((op) => op.t !== 'profile');
   });
   queue({ t: 'profile', firstName: first, lastName: last });
+}
+
+export function acknowledgeSafety() {
+  update((s) => {
+    s.profile.safetyAck = true;
+  });
 }
 
 export function toggleRsvp(eventId) {

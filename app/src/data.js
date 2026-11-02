@@ -24,6 +24,10 @@ export const ADOPTION_RULES = {
   promptAfterCheckins: 3,
 };
 
+// Zones next to highways and ramps. Walking there is dangerous, so they never get a
+// hot-zone bonus or an adopted-block multiplier, and the database enforces the same.
+export const ROADWAY_ZONES = ['z5'];
+
 // Hot zones steer volunteers where they're needed most. Organizers set them in
 // Supabase (Table Editor, hot_zones); these are only the built-in values used
 // until the first sync on a fresh install.
@@ -40,7 +44,9 @@ function hotTier(multiplier) {
 // rows: [{ zone_id, multiplier }] from the server (or the cached copy).
 export function setHotZones(rows) {
   if (!Array.isArray(rows)) return;
-  hotZones = Object.fromEntries(rows.map((r) => [r.zone_id, Number(r.multiplier) || 2]));
+  hotZones = Object.fromEntries(
+    rows.filter((r) => !ROADWAY_ZONES.includes(r.zone_id)).map((r) => [r.zone_id, Number(r.multiplier) || 2]),
+  );
 }
 
 // Hot zones, hottest first: [{ zoneId, multiplier, label, short }].
@@ -304,6 +310,10 @@ export function zoneById(id) {
   return ZONES.find((z) => z.id === id) || null;
 }
 
+function isRoadway(id) {
+  return ROADWAY_ZONES.includes(id) || ROADWAY_ZONES.includes(blockById(id)?.zoneId);
+}
+
 export function blockById(id) {
   return BLOCKS.find((b) => b.id === id) || null;
 }
@@ -316,7 +326,7 @@ export function computeScore(minutes, areaIds, adoptedBlockIds = []) {
   const base = Math.max(SCORING.minimumPoints, Math.round(minutes * SCORING.pointsPerMinute));
   const hot = bestHotSpot(areaIds);
   let multiplier = hot ? hot.multiplier : 1;
-  if (areaIds.some((id) => adoptedBlockIds.includes(id))) {
+  if (areaIds.some((id) => adoptedBlockIds.includes(id) && !isRoadway(id))) {
     multiplier = Math.max(multiplier, ADOPTION_RULES.pointsMultiplier);
   }
   return { base, multiplier, total: base * multiplier, hot };

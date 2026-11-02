@@ -5,11 +5,11 @@ import {
   ZONES, blocksForZone, blockById, zoneById,
   getHotSpot, computeScore, ADOPTION_RULES, ZONE_MASCOTS,
   ZONE_POLYGONS, REQUIRE_LOCATION, LOCATION_BUFFER_METERS,
-  STILL_CLEANING_MINUTES, MAX_SESSION_MINUTES, FINISH_BUFFER_METERS, formatMinutes,
+  STILL_CLEANING_MINUTES, MAX_SESSION_MINUTES, FINISH_BUFFER_METERS, formatMinutes, ROADWAY_ZONES,
 } from '../data.js';
 import {
   getState, recordCheckin, adoptedBlockIds, adoptBlock, uuid,
-  saveActiveSession, loadActiveSession, totalXp,
+  saveActiveSession, loadActiveSession, totalXp, acknowledgeSafety,
 } from '../store.js';
 import { levelInfo, estimateXp } from '../levels.js';
 import { icon, esc, openSheet, closeSheet, toast, celebrate } from '../ui.js';
@@ -181,6 +181,7 @@ function renderStart(root, params) {
         }
         restore();
       }
+      if (!(await confirmSafety(zoneId))) return;
       successHaptic();
       session = {
         startTime: Date.now(),
@@ -565,12 +566,50 @@ function finish(root, minutes) {
   navigate('home');
 }
 
+// Shown before your first cleanup, and every time for a zone beside highways and ramps.
+// Resolves true once the person says they understand, false if they close it.
+function confirmSafety(zoneId) {
+  const roadway = ROADWAY_ZONES.includes(zoneId);
+  if (getState().profile.safetyAck && !roadway) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    let settled = false;
+    const settle = (ok) => {
+      if (settled) return;
+      settled = true;
+      resolve(ok);
+    };
+    const wrap = openSheet(`
+      <h2 class="sheet-title">🦺 Stay safe out there</h2>
+      <p class="sheet-sub">A clean block is never worth getting hurt for.</p>
+      ${roadway ? `
+        <div class="card" style="margin-bottom:10px;border-color:#e74c3c">
+          <b style="font-family:var(--font-display)">This zone runs beside highways and ramps</b>
+          <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Only clean from sidewalks and walkways well away from traffic. Never step onto a roadway, ramp or shoulder. Points here are the same as anywhere else, so there is no reason to take a risk.</p>
+        </div>` : ''}
+      <div class="card" style="margin-bottom:12px">
+        <ul style="margin:0;padding-left:18px;font-size:13.5px;color:var(--warm-gray);line-height:1.6">
+          <li>Stay on sidewalks and out of the road.</li>
+          <li>Wear gloves and closed-toe shoes, and use a grabber for anything sharp.</li>
+          <li>Never touch needles, broken glass piles, chemicals or anything that looks hazardous. Step back and call 311, or 911 if someone is in danger.</li>
+          <li>Go with a neighbor when you can, and stay in daylight.</li>
+          <li>Stop any time you feel unsafe.</li>
+        </ul>
+      </div>
+      <button class="btn btn--primary btn--block" id="safety-ok">I understand, start my cleanup</button>`, { onClose: () => settle(false) });
+    wrap.querySelector('#safety-ok').addEventListener('click', () => {
+      acknowledgeSafety();
+      settle(true);
+      closeSheet();
+    });
+  });
+}
+
 function maybePromptAdoption(blockId) {
   if (!blockId) return;
   const s = getState();
   const count = s.blockCheckins[blockId] || 0;
   const block = blockById(blockId);
-  if (!block || count < ADOPTION_RULES.promptAfterCheckins) return;
+  if (!block || ROADWAY_ZONES.includes(block.zoneId) || count < ADOPTION_RULES.promptAfterCheckins) return;
   if (s.adoptions.some((a) => a.blockId === blockId)) return;
 
   const wrap = openSheet(`
