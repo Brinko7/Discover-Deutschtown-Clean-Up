@@ -147,6 +147,17 @@ export function distanceToPolygonMeters(lat, lng, polygon) {
   return best;
 }
 
+// Distance in meters to the nearest cleanup zone of any kind (0 inside one).
+export function distanceToNeighborhoodMeters(lat, lng) {
+  let best = Infinity;
+  for (const z of ZONES) {
+    const d = distanceToPolygonMeters(lat, lng, ZONE_POLYGONS[z.id]);
+    if (d < best) best = d;
+    if (best === 0) break;
+  }
+  return best;
+}
+
 // Finds where the user is standing: exact polygon hit first,
 // otherwise the nearest zone within 400m of its centroid.
 export function locateArea(lat, lng) {

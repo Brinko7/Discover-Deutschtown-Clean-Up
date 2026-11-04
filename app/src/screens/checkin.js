@@ -4,7 +4,7 @@
 import {
   ZONES, blocksForZone, blockById, zoneById,
   getHotSpot, computeScore, ADOPTION_RULES, ZONE_MASCOTS,
-  ZONE_POLYGONS, REQUIRE_LOCATION, LOCATION_BUFFER_METERS,
+  REQUIRE_LOCATION, NEIGHBORHOOD_BUFFER_METERS,
   STILL_CLEANING_MINUTES, MAX_SESSION_MINUTES, FINISH_BUFFER_METERS, formatMinutes, ROADWAY_ZONES,
 } from '../data.js';
 import {
@@ -14,7 +14,7 @@ import {
 import { levelInfo, estimateXp } from '../levels.js';
 import { icon, esc, openSheet, closeSheet, toast, celebrate } from '../ui.js';
 import { icons } from '../icons.js';
-import { tapHaptic, successHaptic, takePhoto, getPosition, locateArea, distanceToPolygonMeters } from '../native.js';
+import { tapHaptic, successHaptic, takePhoto, getPosition, locateArea, distanceToNeighborhoodMeters } from '../native.js';
 import { navigate, refreshTabBar } from '../main.js';
 
 // Module-level so the session survives tab switches, and saved to the phone
@@ -145,8 +145,8 @@ function renderStart(root, params) {
     root.querySelector('#btn-start').addEventListener('click', async (e) => {
       if (!zoneId) return;
       const startBtn = e.currentTarget;
-      // You have to be at the cleanup to start it: your GPS position must be
-      // inside the chosen zone, or within a small buffer of its edge.
+      // You have to be in the neighborhood to start: anywhere inside a cleanup
+      // zone or just outside one, whichever zone you picked.
       if (REQUIRE_LOCATION) {
         const label = startBtn.innerHTML;
         startBtn.disabled = true;
@@ -165,18 +165,11 @@ function renderStart(root, params) {
           toast('We need your location to start a cleanup. Turn on location for this app in your phone settings and try again.', { emoji: '📍' });
           return;
         }
-        const zoneName = zoneById(zoneId)?.name || 'that zone';
-        const away = distanceToPolygonMeters(pos.lat, pos.lng, ZONE_POLYGONS[zoneId]);
-        if (away > LOCATION_BUFFER_METERS) {
+        const away = distanceToNeighborhoodMeters(pos.lat, pos.lng);
+        if (away > NEIGHBORHOOD_BUFFER_METERS) {
           restore();
-          const found = locateArea(pos.lat, pos.lng);
           const where = away === Infinity ? '' : away < 1000 ? `about ${Math.round(away / 10) * 10} m` : `about ${(away / 1000).toFixed(1)} km`;
-          toast(
-            found.zone && found.zone.id !== zoneId
-              ? `You're in ${found.zone.name}, not ${zoneName}. Pick ${found.zone.name} to start here.`
-              : `You're ${where ? where + ' ' : ''}from ${zoneName}. Head over, then start your cleanup.`,
-            { emoji: '🧭' },
-          );
+          toast(`You're ${where ? where + ' ' : ''}from Deutschtown. Head into the neighborhood, then start your cleanup.`, { emoji: '🧭' });
           return;
         }
         restore();
@@ -224,7 +217,11 @@ function renderStart(root, params) {
         setBanner(`<b>${found.nearby ? 'Closest zone' : "You're in"}: ${esc(where)}</b><br><span style="font-size:12px;opacity:.8">Picked for you. Tap a different zone to change it.</span>`);
         paint();
       } else {
-        setBanner("<b>You're not in a cleanup zone right now</b><br><span style=\"font-size:12px;opacity:.8\">Head to one of the zones below, then tap here to check again</span>");
+        if (distanceToNeighborhoodMeters(pos.lat, pos.lng) <= NEIGHBORHOOD_BUFFER_METERS) {
+          setBanner("<b>You're in the neighborhood</b><br><span style=\"font-size:12px;opacity:.8\">Pick the zone you're cleaning below</span>");
+        } else {
+          setBanner("<b>You're outside Deutschtown right now</b><br><span style=\"font-size:12px;opacity:.8\">Head into the neighborhood, then tap here to check again</span>");
+        }
       }
     } catch (e) {
       setBanner('<b>Location is off</b><br><span style="font-size:12px;opacity:.8">Turn on location for this app to start a cleanup, then tap here</span>');
@@ -437,8 +434,8 @@ function endSession() {
   refreshTabBar();
 }
 
-// Check-out: a quick location check. Someone far from their zone is asked how
-// long they actually cleaned (they may have walked home first). If location is
+// Check-out: a quick location check. Someone who has left the neighborhood is asked
+// how long they actually cleaned (they may have walked home first). If location is
 // unavailable, the check-out goes ahead as is.
 async function checkOut(root) {
   if (!session) return;
@@ -452,7 +449,7 @@ async function checkOut(root) {
     }
     try {
       const pos = await getPosition();
-      away = distanceToPolygonMeters(pos.lat, pos.lng, ZONE_POLYGONS[session.zoneId]);
+      away = distanceToNeighborhoodMeters(pos.lat, pos.lng);
     } catch (e) {
       away = 0;
     }
@@ -464,12 +461,11 @@ async function checkOut(root) {
   if (!session) return;
   if (!(away > FINISH_BUFFER_METERS) || away === Infinity) return finish(root, credited);
 
-  const zoneName = zoneById(session.zoneId)?.name || 'your zone';
   const dist = away < 1000 ? `about ${Math.round(away / 10) * 10} m` : `about ${(away / 1000).toFixed(1)} km`;
   let minutes = credited;
   const wrap = openSheet(`
     <h2 class="sheet-title">How long did you clean?</h2>
-    <p class="sheet-sub">You're ${dist} from ${esc(zoneName)}. If you stopped cleaning a while ago, set the time you actually spent there.</p>
+    <p class="sheet-sub">You're ${dist} from Deutschtown. If you stopped cleaning a while ago, set the time you actually spent there.</p>
     <div class="minutes-stepper">
       <button class="btn btn--ghost" id="min-down" aria-label="15 minutes less">−15</button>
       <div class="minutes-value" id="min-value"></div>

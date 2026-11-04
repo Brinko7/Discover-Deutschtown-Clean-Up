@@ -8,6 +8,7 @@ import {
   getState, colorFor, refreshRemote, zoneAdopters, myZoneAdoption, zoneAdoptionLapsed, zoneAdoptBlocker, adoptZone, leaveZone,
 } from '../store.js';
 import { bindUserLinks, initials, userLinkAttr } from './user.js';
+import { openClipboard } from './clipboard.js';
 import { icon, esc, openSheet, closeSheet, toast } from '../ui.js';
 import { icons } from '../icons.js';
 import { tapHaptic, getPosition, locateArea } from '../native.js';
@@ -51,9 +52,6 @@ function adoptControlHtml(zoneId, adopters) {
   const blocked = zoneAdoptBlocker(zoneId);
   if (blocked === 'roadway') {
     return '<p style="font-size:13px;color:var(--warm-gray);margin:10px 0">This zone runs beside highways, so it can\'t be adopted.</p>';
-  }
-  if (blocked === 'clean') {
-    return '<p style="font-size:13px;color:var(--warm-gray);margin:10px 0">Clean here once and you can adopt this zone.</p>';
   }
   if (blocked === 'limit') {
     return `<p style="font-size:13px;color:var(--warm-gray);margin:10px 0">You've adopted ${ZONE_ADOPTION.maxZones} zones, the most anyone can at once. Stop adopting one to take this on.</p>`;
@@ -181,6 +179,7 @@ export function renderMap(root, params = {}) {
       <div id="map-container"></div>
       <div class="map-topbar">
         <div class="map-title-chip">${icon('map')} Deutschtown zones</div>
+        <button class="map-title-chip" id="btn-clipboard" style="border:none;cursor:pointer;margin-left:auto">📋 Clipboard</button>
         <button class="map-locate-btn" id="btn-locate" aria-label="Find me">${icons.crosshair}</button>
       </div>
       <div class="map-legend">
@@ -251,6 +250,11 @@ export function renderMap(root, params = {}) {
       });
   }
   map.on('zoomend moveend', layoutZoneLabels);
+
+  root.querySelector('#btn-clipboard').addEventListener('click', () => {
+    tapHaptic();
+    openClipboard({ onZone: openZoneSheet });
+  });
 
   root.querySelector('#btn-locate').addEventListener('click', async () => {
     tapHaptic();

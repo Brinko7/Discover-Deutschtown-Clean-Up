@@ -456,10 +456,9 @@ export function activeZoneAdoptions() {
   return state.zoneAdoptions.filter((a) => !zoneAdoptionLapsed(a));
 }
 
-// Why you cannot adopt this zone right now ('roadway', 'clean', 'limit'), or null if you can.
+// Why you cannot adopt this zone right now ('roadway', 'limit'), or null if you can.
 export function zoneAdoptBlocker(zoneId) {
   if (ROADWAY_ZONES.includes(zoneId)) return 'roadway';
-  if ((state.zoneCheckins[zoneId] || 0) < ZONE_ADOPTION.cleanupsToAdopt) return 'clean';
   if (activeZoneAdoptions().length >= ZONE_ADOPTION.maxZones) return 'limit';
   return null;
 }

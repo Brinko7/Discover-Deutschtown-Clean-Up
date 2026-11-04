@@ -1,6 +1,7 @@
-import { hotZoneList, zoneById, formatMinutes, MIXER, VENMO_HANDLE, DONATIONS_ENABLED, ZONE_ADOPTION, ROADWAY_ZONES } from '../data.js';
+import { hotZoneList, zoneById, formatMinutes, MIXER, VENMO_HANDLE, DONATIONS_ENABLED, ZONE_ADOPTION } from '../data.js';
 import { getState, activityFeed, timeAgo, refreshRemote, totalXp, zoneAdoptionLapsed, daysSinceCare } from '../store.js';
 import { bindUserLinks, userLinkAttr } from './user.js';
+import { openClipboard } from './clipboard.js';
 import { levelInfo } from '../levels.js';
 import { icon, esc, openSheet, closeSheet, toast, levelCard, bindLevelCards } from '../ui.js';
 import { icons } from '../icons.js';
@@ -33,27 +34,21 @@ function hotZoneCards() {
     .join('');
 }
 
-// Zones you adopted, each with how it is doing. No adoption yet, once you have
-// cleaned somewhere you could adopt: a way in, pointing at your most-cleaned zone.
+// The zone clipboard entry, then the zones you adopted, each with how it is doing.
+function clipboardCardHtml() {
+  return `
+    <div class="card card--tappable hot-card" id="open-clipboard">
+      <div class="hot-emoji">📋</div>
+      <div>
+        <div style="font-family:var(--font-display);font-weight:700;font-size:14.5px">Zone clipboard</div>
+        <div style="font-size:12px;color:var(--warm-gray)">See who looks after each zone, and adopt one that's open.</div>
+      </div>
+    </div>`;
+}
+
 function yourZonesHtml() {
   const s = getState();
-  if (!s.zoneAdoptions.length) {
-    const best = Object.entries(s.zoneCheckins)
-      .filter(([id]) => !ROADWAY_ZONES.includes(id) && zoneById(id))
-      .sort((a, b) => b[1] - a[1])[0];
-    if (!best) return '';
-    const z = zoneById(best[0]);
-    return `
-      <div class="section">
-        <div class="card card--tappable hot-card" data-goto-zone="${z.id}">
-          <div class="hot-emoji">🤝</div>
-          <div>
-            <div style="font-family:var(--font-display);font-weight:700;font-size:14.5px">Adopt ${esc(z.name)}?</div>
-            <div style="font-size:12px;color:var(--warm-gray)">Promise it a cleanup every ${ZONE_ADOPTION.commitmentDays} days and your name goes on the map.</div>
-          </div>
-        </div>
-      </div>`;
-  }
+  if (!s.zoneAdoptions.length) return `<div class="section">${clipboardCardHtml()}</div>`;
   return `
     <div class="section">
       <div class="section-title">🤝 Your zones</div>
@@ -79,6 +74,7 @@ function yourZonesHtml() {
             </div>
           </div>`;
       }).join('')}
+      ${clipboardCardHtml()}
     </div>`;
 }
 
@@ -227,6 +223,10 @@ export function renderHome(root) {
   root.querySelector('#hero-map').addEventListener('click', () => {
     tapHaptic();
     navigate('map');
+  });
+  root.querySelector('#open-clipboard')?.addEventListener('click', () => {
+    tapHaptic();
+    openClipboard();
   });
   root.querySelectorAll('[data-goto-zone]').forEach((el) => {
     el.addEventListener('click', () => {

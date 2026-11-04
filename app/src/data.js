@@ -31,7 +31,6 @@ export const ROADWAY_ZONES = ['z5'];
 // Adopting a zone. The database enforces the same rules (supabase/migrations/20261104000000_zone_adoptions.sql).
 export const ZONE_ADOPTION = {
   maxZones: 2,
-  cleanupsToAdopt: 1,
   commitmentDays: 30, // the promise: a cleanup at least this often
   lapseDays: 45, // no cleanup for this long and it drops off the map until the next one
 };
@@ -301,6 +300,10 @@ export const DONATIONS_ENABLED = false;
 // Set REQUIRE_LOCATION to false to turn the rule off while testing.
 export const REQUIRE_LOCATION = true;
 export const LOCATION_BUFFER_METERS = 100;
+// For now you can start a cleanup from anywhere in the neighborhood, whichever
+// zone you pick: your GPS position just has to be inside a cleanup zone or
+// within this distance of one. Check-out uses the same rule.
+export const NEIGHBORHOOD_BUFFER_METERS = 250;
 
 // Points are earned per minute, so a forgotten timer must not run forever.
 // After STILL_CLEANING_MINUTES the app asks "Still cleaning?". Time after an
