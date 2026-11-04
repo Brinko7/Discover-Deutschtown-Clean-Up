@@ -40,6 +40,17 @@ select id, name, organizer, contact_email, event_date, sponsored, status from pu
 select created_at, type, email, message from public.feedback order by created_at desc;
 ```
 
+Reports from the app arrive in the same inbox, with `type` = `report` and the username in the message. Act on them below (`admin.user_overview` finds the user id).
+
+```sql
+select created_at, message from public.feedback where type = 'report' order by created_at desc;
+
+-- Who adopted which zones, including lapsed ones
+select a.zone_id, p.username, a.adopted_at from public.zone_adoptions a join public.profiles p on p.id = a.user_id order by 1, 3;
+-- Take someone off a zone
+delete from public.zone_adoptions where zone_id = 'z1' and user_id = '<user id>';
+```
+
 Approve an event: Table Editor, `events`, change `status` to `approved`. It then shows up in both apps and on the web page.
 
 ## Acting on someone

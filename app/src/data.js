@@ -28,6 +28,14 @@ export const ADOPTION_RULES = {
 // hot-zone bonus or an adopted-block multiplier, and the database enforces the same.
 export const ROADWAY_ZONES = ['z5'];
 
+// Adopting a zone. The database enforces the same rules (supabase/migrations/20261104000000_zone_adoptions.sql).
+export const ZONE_ADOPTION = {
+  maxZones: 2,
+  cleanupsToAdopt: 1,
+  commitmentDays: 30, // the promise: a cleanup at least this often
+  lapseDays: 45, // no cleanup for this long and it drops off the map until the next one
+};
+
 // Hot zones steer volunteers where they're needed most. Organizers set them in
 // Supabase (Table Editor, hot_zones); these are only the built-in values used
 // until the first sync on a fresh install.

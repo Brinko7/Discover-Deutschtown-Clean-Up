@@ -171,6 +171,15 @@ export async function fetchMyStats() {
   return data[0];
 }
 
+// Another neighbor's public profile, by username. { profile } or { profile: null } if there
+// is no such person; { error: true } if it could not be asked (offline, for example).
+export async function fetchPublicProfile(username) {
+  if (!(await ensureSession())) return { error: true };
+  const { data, error } = await supabase.rpc('get_public_profile', { p_username: username });
+  if (error) return { error: true };
+  return { profile: data?.[0] || null };
+}
+
 // ── Writes (called from the outbox) ──────────────────────────
 
 export async function sendProfileNames(firstName, lastName) {
@@ -249,11 +258,48 @@ export async function sendAdoption(blockId, zoneId) {
   return verdict(error);
 }
 
+export async function sendZoneAdoption(zoneId, adopted) {
+  const uid = await ensureSession();
+  if (!uid) return RETRY;
+  const { error } = adopted
+    ? await supabase
+        .from('zone_adoptions')
+        .upsert({ user_id: uid, zone_id: zoneId }, { onConflict: 'zone_id,user_id', ignoreDuplicates: true })
+    : await supabase.from('zone_adoptions').delete().eq('user_id', uid).eq('zone_id', zoneId);
+  return verdict(error);
+}
+
+export async function sendProfileHidden(hidden) {
+  const uid = await ensureSession();
+  if (!uid) return RETRY;
+  const { error } = await supabase.from('profiles').update({ profile_hidden: !!hidden }).eq('id', uid);
+  return verdict(error);
+}
+
+// Goes to the same inbox as feedback (supabase/ADMIN.md). Not queued: the person
+// is told straight away if it did not send, so they can try again.
+export async function sendReport(username, reason) {
+  const uid = await ensureSession();
+  if (!uid) return false;
+  const { error } = await supabase.from('feedback').insert({
+    type: 'report',
+    user_id: uid,
+    message: `Report of ${username}: ${reason}`.slice(0, 4000),
+  });
+  return !error;
+}
+
 // ── Reads (names and totals only) ────────────────────────────
 
 export async function fetchLeaderboard(limit = 20) {
   if (!(await ensureSession())) return null;
   const { data, error } = await supabase.rpc('get_leaderboard', { max_rows: limit });
+  return error ? null : data;
+}
+
+export async function fetchZoneAdopters() {
+  if (!(await ensureSession())) return null;
+  const { data, error } = await supabase.rpc('get_zone_adopters');
   return error ? null : data;
 }
 

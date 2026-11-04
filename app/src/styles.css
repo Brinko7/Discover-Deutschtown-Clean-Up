@@ -1688,3 +1688,9 @@ button.level-card {
   color: var(--green);
   margin-top: 2px;
 }
+
+/* Anything that opens a neighbor's profile */
+[data-username],
+[data-goto-you] {
+  cursor: pointer;
+}

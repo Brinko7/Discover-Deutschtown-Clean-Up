@@ -1,5 +1,7 @@
 import { ZONE_MASCOTS, zoneById, blockById, formatMinutes, ADOPTION_RULES } from '../data.js';
-import { getState, setProfileNames, timeAgo, getRemote, refreshRemote, colorFor, resetAll, totalXp } from '../store.js';
+import { getState, setProfileNames, timeAgo, getRemote, refreshRemote, colorFor, resetAll, totalXp, zoneAdoptionLapsed, setProfileHidden } from '../store.js';
+import { bindUserLinks, userLinkAttr } from './user.js';
+import { navigate } from '../main.js';
 import { levelInfo } from '../levels.js';
 import { deleteMyAccount, signOutAccount, currentAccount, photoUrls } from '../backend.js';
 import { icon, esc, openSheet, closeSheet, toast, levelCard, bindLevelCards } from '../ui.js';
@@ -22,6 +24,7 @@ function leaderboardData() {
   return real.map((r) => ({
     id: 'r' + r.rank,
     full_name: r.full_name,
+    username: r.username,
     points: Number(r.points),
     streak_weeks: r.streak_weeks,
     level: levelInfo(r.xp).level,
@@ -37,7 +40,7 @@ function podiumHtml(top3) {
   return `
     <div class="podium">
       ${order.map((p, i) => p ? `
-        <div class="podium-col ${cls[i]}">
+        <div class="podium-col ${cls[i]}" ${p.isYou ? '' : userLinkAttr(p.username)}>
           <div class="podium-avatar" style="background:${p._color}">
             ${i === 1 ? '<span class="crown">👑</span>' : ''}
             ${esc(initials(p.full_name))}
@@ -146,7 +149,7 @@ export function renderProfile(root) {
           ${leaders.length ? podiumHtml(leaders.slice(0, 3)) : `<div class="empty-state" style="padding:18px 8px"><div class="empty-emoji">🏆</div><p>Nobody is on the board yet.<br>Check in to claim the first spot.</p></div>`}
           <div style="margin-top:8px">
             ${leaders.slice(3, 11).map((p, i) => `
-              <div class="lb-row ${p.isYou ? 'lb-row--you' : ''}">
+              <div class="lb-row ${p.isYou ? 'lb-row--you' : ''}" ${p.isYou ? '' : userLinkAttr(p.username)}>
                 <div class="lb-rank">${i + 4}</div>
                 <div class="lb-avatar" style="background:${p._color}">${esc(initials(p.full_name))}</div>
                 <div class="lb-name">${esc(p.isYou ? (p.full_name === 'You' ? 'You' : p.full_name + ' (you)') : p.full_name)}</div>
@@ -186,6 +189,18 @@ export function renderProfile(root) {
         <p style="font-size:12px;color:var(--warm-gray);margin-top:8px;text-align:center">Clean a zone once to meet its mascot.</p>
       </div>
 
+      ${s.zoneAdoptions.length ? `
+        <div class="section">
+          <div class="section-title">🤝 Your adopted zones</div>
+          <div class="card" style="padding:4px 16px">
+            ${s.zoneAdoptions.map((a) => {
+              const z = zoneById(a.zoneId);
+              if (!z) return '';
+              return `<button class="list-row" data-goto-zone="${z.id}"><span class="row-icon">${z.emoji}</span><span><b style="font-family:var(--font-display)">${esc(z.name)}</b><br><span style="font-size:12px;color:var(--warm-gray)">${zoneAdoptionLapsed(a) ? 'Lapsed. Clean here to pick it back up.' : 'Adopted ' + timeAgo(a.adoptedAt)}</span></span><span class="row-chevron">${icons.chevronRight}</span></button>`;
+            }).join('')}
+          </div>
+        </div>` : ''}
+
       ${s.adoptions.length ? `
         <div class="section">
           <div class="section-title">🏠 Your adopted blocks</div>
@@ -204,6 +219,11 @@ export function renderProfile(root) {
             <span><b style="font-family:var(--font-display)">Cleanup history</b><br><span style="font-size:12px;color:var(--warm-gray)">${s.profile.sessions} session${s.profile.sessions === 1 ? '' : 's'} logged</span></span>
             <span class="row-chevron">${icons.chevronRight}</span>
           </button>
+          ${s.profile.profileHidden === null ? '' : `
+          <button class="list-row" id="row-private">
+            <span class="row-icon">${s.profile.profileHidden ? '🙈' : '👀'}</span>
+            <span><b style="font-family:var(--font-display)">Private profile: ${s.profile.profileHidden ? 'on' : 'off'}</b><br><span style="font-size:12px;color:var(--warm-gray)">${s.profile.profileHidden ? 'Neighbors only see your username, level and adopted zones' : 'Neighbors can see your totals, badges and adoptions'}</span></span>
+          </button>`}
           <button class="list-row" id="row-invite">
             <span class="row-icon">${icons.share}</span>
             <span><b style="font-family:var(--font-display)">Invite a neighbor</b><br><span style="font-size:12px;color:var(--warm-gray)">More hands, cleaner blocks</span></span>
@@ -234,6 +254,18 @@ export function renderProfile(root) {
     </div>`;
 
   bindLevelCards(root, totalXp);
+  bindUserLinks(root);
+  root.querySelectorAll('[data-goto-zone]').forEach((el) => {
+    el.addEventListener('click', () => {
+      tapHaptic();
+      navigate('map', { zoneId: el.dataset.gotoZone });
+    });
+  });
+  root.querySelector('#row-private')?.addEventListener('click', () => {
+    tapHaptic();
+    setProfileHidden(!getState().profile.profileHidden);
+    rerender();
+  });
   root.querySelector('#btn-edit-name').addEventListener('click', () => {
     tapHaptic();
     editNameSheet(rerender);
@@ -269,15 +301,15 @@ export function renderProfile(root) {
       <p class="sheet-sub">Effective October 20, 2026</p>
       <div class="card" style="margin-bottom:10px">
         <b style="font-family:var(--font-display)">What this app collects</b>
-        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Your account (username and email), profile name, check-in details (zone/block, time, notes), RSVPs, adopted blocks, and any photos you attach to a check-in. If you allow it, we use your location just once, in the moment, to figure out which zone or block you're standing in. We never track your location in the background, and your coordinates are not stored.</p>
+        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Your account (username and email), profile name, check-in details (zone/block, time, notes), RSVPs, adopted blocks and zones, and any photos you attach to a check-in. If you allow it, we use your location just once, in the moment, to figure out which zone or block you're standing in. We never track your location in the background, and your coordinates are not stored.</p>
       </div>
       <div class="card" style="margin-bottom:10px">
         <b style="font-family:var(--font-display)">Where it's stored</b>
-        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Your data is kept on your phone and sent to a private database run for this project (hosted by Supabase) so the leaderboard and activity feed work. You sign in with an account (email and password), and your username and name are how neighbors see you. Photos are stored privately and only you can see them. Nothing is sold or used for ads.</p>
+        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Your data is kept on your phone and sent to a private database run for this project (hosted by Supabase) so the leaderboard and activity feed work. You sign in with an account (email and password), and your username is how neighbors see you. Signed-in neighbors can open your profile to see your username, level, totals, mascot badges and adoptions, and your username shows on the map for any zone you adopt. Your real name, email, notes, photos and anonymous check-ins are never on it. Photos are stored privately and only you can see them. Nothing is sold or used for ads.</p>
       </div>
       <div class="card">
         <b style="font-family:var(--font-display)">Your choices</b>
-        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Check in anonymously to hide your name from the activity feed and leaderboard on a specific cleanup. Use "Delete my data" below to remove your account, check-ins and photos from our servers and this phone. Signing out stops syncing on this phone; your server history is still there when you sign back in.</p>
+        <p style="font-size:13.5px;color:var(--warm-gray);margin-top:4px;line-height:1.5">Check in anonymously to hide your name from the activity feed and leaderboard on a specific cleanup. Turn on Private profile in the You tab to show only your username, level and adopted zones. Use "Delete my data" below to remove your account, check-ins and photos from our servers and this phone. Signing out stops syncing on this phone; your server history is still there when you sign back in.</p>
       </div>
       <p style="font-size:12px;color:var(--warm-gray);text-align:center;margin-top:14px">The full policy, including how the Mind Your Block website handles account data, is at <a href="https://brinko7.github.io/Discover-Deutschtown-Clean-Up/privacy-policy.html" target="_blank" rel="noopener" style="color:var(--green)">brinko7.github.io/Discover-Deutschtown-Clean-Up/privacy-policy.html</a>. Contact: zach.carman@gmail.com.</p>`);
   });

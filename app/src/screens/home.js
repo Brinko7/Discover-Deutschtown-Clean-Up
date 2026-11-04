@@ -1,5 +1,6 @@
-import { hotZoneList, zoneById, formatMinutes, MIXER, VENMO_HANDLE, DONATIONS_ENABLED } from '../data.js';
-import { getState, activityFeed, timeAgo, refreshRemote, totalXp } from '../store.js';
+import { hotZoneList, zoneById, formatMinutes, MIXER, VENMO_HANDLE, DONATIONS_ENABLED, ZONE_ADOPTION, ROADWAY_ZONES } from '../data.js';
+import { getState, activityFeed, timeAgo, refreshRemote, totalXp, zoneAdoptionLapsed, daysSinceCare } from '../store.js';
+import { bindUserLinks, userLinkAttr } from './user.js';
 import { levelInfo } from '../levels.js';
 import { icon, esc, openSheet, closeSheet, toast, levelCard, bindLevelCards } from '../ui.js';
 import { icons } from '../icons.js';
@@ -32,6 +33,55 @@ function hotZoneCards() {
     .join('');
 }
 
+// Zones you adopted, each with how it is doing. No adoption yet, once you have
+// cleaned somewhere you could adopt: a way in, pointing at your most-cleaned zone.
+function yourZonesHtml() {
+  const s = getState();
+  if (!s.zoneAdoptions.length) {
+    const best = Object.entries(s.zoneCheckins)
+      .filter(([id]) => !ROADWAY_ZONES.includes(id) && zoneById(id))
+      .sort((a, b) => b[1] - a[1])[0];
+    if (!best) return '';
+    const z = zoneById(best[0]);
+    return `
+      <div class="section">
+        <div class="card card--tappable hot-card" data-goto-zone="${z.id}">
+          <div class="hot-emoji">🤝</div>
+          <div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:14.5px">Adopt ${esc(z.name)}?</div>
+            <div style="font-size:12px;color:var(--warm-gray)">Promise it a cleanup every ${ZONE_ADOPTION.commitmentDays} days and your name goes on the map.</div>
+          </div>
+        </div>
+      </div>`;
+  }
+  return `
+    <div class="section">
+      <div class="section-title">🤝 Your zones</div>
+      ${s.zoneAdoptions.map((a) => {
+        const z = zoneById(a.zoneId);
+        if (!z) return '';
+        const days = daysSinceCare(a);
+        const lapsed = zoneAdoptionLapsed(a);
+        const due = !lapsed && days >= ZONE_ADOPTION.commitmentDays;
+        const note = lapsed
+          ? 'Lapsed. Clean here to pick it back up.'
+          : due
+            ? `Due for a cleanup. It's been ${days} days.`
+            : a.lastCleanup
+              ? `You last cleaned here ${days === 0 ? 'today' : days === 1 ? 'yesterday' : days + ' days ago'}.`
+              : 'Adopted. Thanks for looking after it.';
+        return `
+          <div class="card card--tappable hot-card" data-goto-zone="${z.id}">
+            <div class="hot-emoji">${z.emoji}</div>
+            <div>
+              <div style="font-family:var(--font-display);font-weight:700;font-size:14.5px">${esc(z.name)}</div>
+              <div style="font-size:12px;color:${lapsed || due ? '#b5531d' : 'var(--warm-gray)'}">${esc(note)}</div>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>`;
+}
+
 function feedHtml() {
   const items = activityFeed();
   if (!items.length) {
@@ -44,7 +94,7 @@ function feedHtml() {
         ? `adopted <b>${esc(a.blockName || a.zoneName)}</b>`
         : `cleaned <b>${esc(a.blockName || a.zoneName)}</b>`;
       return `
-        <div class="feed-item">
+        <div class="feed-item" ${a.isYou ? 'data-goto-you' : userLinkAttr(a.anonymous ? '' : a.name)}>
           <div class="feed-avatar" style="background:${a.color || '#5a6472'}">${a.anonymous ? '🕶️' : esc(initials(a.name || '?')) || '?'}</div>
           <div class="feed-text"><b>${esc(a.isYou && !a.anonymous ? 'You' : a.name)}</b> ${what}</div>
           <div class="feed-time">${timeAgo(a.ts)}</div>
@@ -127,6 +177,8 @@ export function renderHome(root) {
         <div style="margin-top:10px">${levelCard(levelInfo(totalXp()))}</div>
       </div>
 
+      ${yourZonesHtml()}
+
       ${hotZoneList().length ? `
       <div class="section">
         <div class="section-title">🔥 Hot zones this week</div>
@@ -161,6 +213,13 @@ export function renderHome(root) {
     </div>`;
 
   bindLevelCards(root, totalXp);
+  bindUserLinks(root);
+  root.querySelectorAll('[data-goto-you]').forEach((el) => {
+    el.addEventListener('click', () => {
+      tapHaptic();
+      navigate('profile');
+    });
+  });
   root.querySelector('#hero-checkin').addEventListener('click', () => {
     tapHaptic();
     navigate('checkin');

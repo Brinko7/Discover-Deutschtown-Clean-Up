@@ -5,12 +5,13 @@
 // The phone is the source of truth for your own history, so the app works fully offline.
 // Changes are also queued in an outbox and sent to Supabase (see backend.js) when there is a connection.
 import { Preferences } from '@capacitor/preferences';
-import { zoneById, normalizeEvent, setZoneMeta, setHotZones } from './data.js';
-import { estimateXp } from './levels.js';
+import { zoneById, normalizeEvent, setZoneMeta, setHotZones, ZONE_ADOPTION, ROADWAY_ZONES } from './data.js';
+import { estimateXp, levelInfo } from './levels.js';
 import {
   DONE, RETRY,
   ensureSession, currentUserId, sendProfileNames, sendCheckin, sendRsvp, sendAdoption,
-  fetchLeaderboard, fetchFeed, fetchEvents, fetchZoneActivity, fetchHotZones, fetchMyStats, photoPath,
+  sendZoneAdoption, sendProfileHidden,
+  fetchLeaderboard, fetchFeed, fetchEvents, fetchZoneActivity, fetchHotZones, fetchMyStats, fetchZoneAdopters, photoPath,
 } from './backend.js';
 
 const KEY = 'myb_state_v1';
@@ -24,6 +25,7 @@ const defaults = () => ({
     onboarded: false,
     ownerId: null,
     safetyAck: false, // has seen the safety card before a first cleanup
+    profileHidden: null, // private profile setting; null until the server has answered
     xp: 0, // XP the server has counted; cleanups still waiting to be sent are added on top (see totalXp)
     points: 0,
     minutes: 0,
@@ -34,19 +36,20 @@ const defaults = () => ({
   checkins: [], // { id, ts, minutes, notes, zoneIds, blockIds, points, multiplier, photos:[dataUrl], photoPaths:[], anonymous }
   rsvps: [], // event ids
   adoptions: [], // { blockId, zoneId, adoptedAt }
+  zoneAdoptions: [], // { zoneId, adoptedAt, lastCleanup } zones you look after
   zoneCheckins: {}, // zoneId -> count (drives mascot unlocks)
   blockCheckins: {}, // blockId -> count (drives adopt prompt)
   mascots: [], // unlocked zoneIds
   activity: [], // user-generated activity entries, newest first
   outbox: [], // changes waiting to be sent: { t: 'profile'|'checkin'|'rsvp'|'adopt', ... }
-  cache: { events: [], zones: [], hot: null }, // last events, zone activity and hot zones from the server, so those screens work offline
+  cache: { events: [], zones: [], hot: null, adopters: null }, // last events, zone activity, hot zones and zone adopters from the server, so those screens work offline
 });
 
 let state = defaults();
 const listeners = new Set();
 
 // Shared data from the server (leaderboard, activity feed). Null until the first successful fetch.
-const remote = { leaders: null, feed: null, events: null, zones: null, hot: null, at: 0 };
+const remote = { leaders: null, feed: null, events: null, zones: null, hot: null, adopters: null, at: 0 };
 const remoteListeners = new Set();
 
 // Check-in ids are UUIDs so the server can ignore a repeated send.
@@ -81,6 +84,7 @@ export async function initStore() {
   // Show the last known events and zone status right away, before the network answers.
   remote.events = state.cache?.events || [];
   remote.zones = state.cache?.zones || [];
+  remote.adopters = state.cache?.adopters || null;
   setZoneMeta(remote.zones, remote.events);
   if (state.cache?.hot) setHotZones(state.cache.hot);
   dropSentPhotos(uid);
@@ -144,6 +148,8 @@ async function sendOp(op) {
   if (op.t === 'profile') return sendProfileNames(op.firstName, op.lastName);
   if (op.t === 'rsvp') return sendRsvp(op.eventId, op.going);
   if (op.t === 'adopt') return sendAdoption(op.blockId, op.zoneId);
+  if (op.t === 'zone') return sendZoneAdoption(op.zoneId, op.adopted);
+  if (op.t === 'hidden') return sendProfileHidden(op.hidden);
   if (op.t === 'checkin') {
     const checkin = state.checkins.find((c) => c.id === op.id);
     if (!checkin) return DONE; // deleted locally, nothing to send
@@ -157,6 +163,7 @@ export async function flushOutbox() {
   if (flushing) return;
   flushing = true;
   let sentCheckin = false;
+  let sentAdoption = false;
   try {
     while (state.outbox.length) {
       const op = state.outbox[0];
@@ -166,6 +173,7 @@ export async function flushOutbox() {
         retryTimer = setTimeout(flushOutbox, 30000);
         break;
       }
+      if (op.t === 'adopt' || op.t === 'zone') sentAdoption = true; // refused or not, the server's answer wins
       if (op.t === 'checkin' && result === DONE) {
         sentCheckin = true;
         const c = state.checkins.find((x) => x.id === op.id);
@@ -177,7 +185,7 @@ export async function flushOutbox() {
   } finally {
     flushing = false;
   }
-  if (sentCheckin) {
+  if (sentCheckin || sentAdoption) {
     refreshRemote(true);
     refreshMyStats();
   }
@@ -196,9 +204,10 @@ export function subscribeRemote(fn) {
 export async function refreshRemote(force = false) {
   if (!force && Date.now() - remote.at < 30000) return;
   remote.at = Date.now();
-  const [leaders, feed, events, zones, hot] = await Promise.all([
-    fetchLeaderboard(20), fetchFeed(30), fetchEvents(), fetchZoneActivity(), fetchHotZones(),
+  const [leaders, feed, events, zones, hot, adopters] = await Promise.all([
+    fetchLeaderboard(20), fetchFeed(30), fetchEvents(), fetchZoneActivity(), fetchHotZones(), fetchZoneAdopters(),
   ]);
+  if (adopters) remote.adopters = adopters;
   if (leaders) remote.leaders = leaders;
   if (feed) remote.feed = feed;
   if (events) remote.events = events;
@@ -207,13 +216,18 @@ export async function refreshRemote(force = false) {
     remote.hot = hot;
     setHotZones(hot);
   }
-  if (events || zones || hot) {
+  if (events || zones || hot || adopters) {
     setZoneMeta(remote.zones || [], remote.events || []);
     update((s) => {
-      s.cache = { events: remote.events || [], zones: remote.zones || [], hot: remote.hot || s.cache?.hot || null };
+      s.cache = {
+        events: remote.events || [],
+        zones: remote.zones || [],
+        hot: remote.hot || s.cache?.hot || null,
+        adopters: remote.adopters || s.cache?.adopters || null,
+      };
     });
   }
-  if (leaders || feed || events || zones || hot) remoteListeners.forEach((fn) => fn(remote));
+  if (leaders || feed || events || zones || hot || adopters) remoteListeners.forEach((fn) => fn(remote));
 }
 
 // Call on start, when the connection returns, and when the app comes back to the foreground.
@@ -230,7 +244,7 @@ export async function syncNow() {
 // are not on the server yet, so they are added on top.
 
 const pendingCheckinIds = () => new Set(state.outbox.filter((op) => op.t === 'checkin').map((op) => op.id));
-const outboxSig = () => state.outbox.map((op) => op.t + (op.id || op.eventId || op.blockId || '')).join('|');
+const outboxSig = () => state.outbox.map((op) => op.t + (op.id || op.eventId || op.blockId || op.zoneId || '')).join('|');
 
 // Total XP: what the server counted plus an estimate for cleanups not sent yet.
 export function totalXp() {
@@ -277,6 +291,23 @@ function applyMyStats(s, stats) {
   });
   s.adoptions = [...adopted.values()];
 
+  // Adopted zones and the privacy setting: only from a server that has them.
+  if (stats.zone_adoptions) {
+    const zones = new Map(stats.zone_adoptions.map((a) => [a.zoneId, { ...a }]));
+    s.outbox.filter((op) => op.t === 'zone').forEach((op) => {
+      if (!op.adopted) zones.delete(op.zoneId);
+      else if (!zones.has(op.zoneId)) zones.set(op.zoneId, { zoneId: op.zoneId, adoptedAt: op.at, lastCleanup: null });
+    });
+    pending.forEach((c) => {
+      const a = zones.get(c.zoneIds[0]);
+      if (a) a.lastCleanup = Math.max(a.lastCleanup || 0, c.ts);
+    });
+    s.zoneAdoptions = [...zones.values()];
+  }
+  if (stats.profile_hidden !== undefined && !s.outbox.some((op) => op.t === 'hidden')) {
+    s.profile.profileHidden = !!stats.profile_hidden;
+  }
+
   // RSVPs: the server's list with any changes still waiting on top.
   const going = new Set(stats.rsvps || []);
   s.outbox.filter((op) => op.t === 'rsvp').forEach((op) => (op.going ? going.add(op.eventId) : going.delete(op.eventId)));
@@ -298,6 +329,7 @@ export async function resetAll() {
   remote.events = null;
   remote.zones = null;
   remote.hot = null;
+  remote.adopters = null;
   remote.at = 0;
   setZoneMeta([], []);
 }
@@ -403,6 +435,82 @@ export function adoptBlock(blockId, zoneId) {
   if (added) queue({ t: 'adopt', blockId, zoneId });
 }
 
+// ── Adopted zones ────────────────────────────────────────────
+
+const DAY_MS = 86400000;
+
+// How long since this adoption last had a cleanup (or began), in days.
+export function daysSinceCare(adoption, now = Date.now()) {
+  return Math.floor((now - Math.max(adoption.adoptedAt || 0, adoption.lastCleanup || 0)) / DAY_MS);
+}
+
+export function zoneAdoptionLapsed(adoption) {
+  return daysSinceCare(adoption) >= ZONE_ADOPTION.lapseDays;
+}
+
+export function myZoneAdoption(zoneId) {
+  return state.zoneAdoptions.find((a) => a.zoneId === zoneId) || null;
+}
+
+export function activeZoneAdoptions() {
+  return state.zoneAdoptions.filter((a) => !zoneAdoptionLapsed(a));
+}
+
+// Why you cannot adopt this zone right now ('roadway', 'clean', 'limit'), or null if you can.
+export function zoneAdoptBlocker(zoneId) {
+  if (ROADWAY_ZONES.includes(zoneId)) return 'roadway';
+  if ((state.zoneCheckins[zoneId] || 0) < ZONE_ADOPTION.cleanupsToAdopt) return 'clean';
+  if (activeZoneAdoptions().length >= ZONE_ADOPTION.maxZones) return 'limit';
+  return null;
+}
+
+// Who looks after a zone: [{ username, level, since, isYou }], or null if this
+// phone has never heard from the server. Your own row comes from this phone, so
+// adopting or leaving shows straight away.
+export function zoneAdopters(zoneId) {
+  if (!remote.adopters) return null;
+  const others = remote.adopters
+    .filter((a) => a.zone_id === zoneId && !a.is_you)
+    .map((a) => ({
+      username: a.username,
+      level: levelInfo(Number(a.xp)).level,
+      since: new Date(a.adopted_at).getTime(),
+      isYou: false,
+    }));
+  const mine = myZoneAdoption(zoneId);
+  if (!mine || zoneAdoptionLapsed(mine)) return others;
+  const you = { username: state.profile.name, level: levelInfo(totalXp()).level, since: mine.adoptedAt, isYou: true };
+  return [you, ...others];
+}
+
+export function adoptZone(zoneId) {
+  const at = Date.now();
+  update((s) => {
+    if (!s.zoneAdoptions.some((a) => a.zoneId === zoneId)) {
+      s.zoneAdoptions.push({ zoneId, adoptedAt: at, lastCleanup: null });
+    }
+    // A newer choice for the same zone replaces an older one still waiting.
+    s.outbox = s.outbox.filter((op) => !(op.t === 'zone' && op.zoneId === zoneId));
+  });
+  queue({ t: 'zone', zoneId, adopted: true, at });
+}
+
+export function leaveZone(zoneId) {
+  update((s) => {
+    s.zoneAdoptions = s.zoneAdoptions.filter((a) => a.zoneId !== zoneId);
+    s.outbox = s.outbox.filter((op) => !(op.t === 'zone' && op.zoneId === zoneId));
+  });
+  queue({ t: 'zone', zoneId, adopted: false });
+}
+
+export function setProfileHidden(hidden) {
+  update((s) => {
+    s.profile.profileHidden = !!hidden;
+    s.outbox = s.outbox.filter((op) => op.t !== 'hidden');
+  });
+  queue({ t: 'hidden', hidden: !!hidden });
+}
+
 export function isAdopted(blockId) {
   return state.adoptions.some((a) => a.blockId === blockId);
 }
@@ -433,6 +541,9 @@ export function recordCheckin(checkin) {
     });
     checkin.blockIds.forEach((bid) => {
       s.blockCheckins[bid] = (s.blockCheckins[bid] || 0) + 1;
+    });
+    s.zoneAdoptions.forEach((a) => {
+      if (checkin.zoneIds.includes(a.zoneId)) a.lastCleanup = checkin.ts;
     });
 
     const zone = zoneById(checkin.zoneIds[0]);
